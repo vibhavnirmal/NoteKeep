@@ -1,0 +1,926 @@
+{% extends "base.html" %}
+{% block title %}All Links · NoteKeep{% endblock %}
+{% block content %}
+<div class="mb-4 sm:mb-6">
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">All Links</h1>
+    <p class="text-sm sm:text-base text-gray-600 flex items-center gap-2">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+        </svg>
+        Your complete archive of saved links
+    </p>
+</div>
+
+<!-- Mobile Clear Filters Button (shown when filters are active) -->
+{% if search or filter_tag or filter_collection or quick_filter or saved_search_id or has_notes or is_unread or date_from or date_to %}
+<div class="mb-4 lg:hidden">
+    <a href="/links" class="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Clear All Filters
+    </a>
+</div>
+{% endif %}
+
+{% if success_message %}
+<div class="mb-4 sm:mb-6 rounded-xl border-l-4 border-green-500 bg-green-50 px-4 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm text-green-800 shadow-sm flex items-start gap-2 sm:gap-3">
+    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>{{ success_message }}</span>
+</div>
+{% endif %}
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 sm:gap-6 items-start">
+    <div class="min-w-0 order-2 lg:order-1">
+        {% if not links %}
+        <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary-100 mb-3 sm:mb-4">
+                <svg class="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">No links found</h3>
+            <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">No links match your current filters. Try adjusting your search criteria.</p>
+            <a href="/links" class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-all shadow-md hover:shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Clear All Filters
+            </a>
+        </div>
+        {% else %}
+        <div class="space-y-2 sm:space-y-3">
+            {% for link in links %}
+            <article class="bg-white border border-gray-200 rounded-lg sm:rounded-xl" data-link-id="{{ link.id }}">
+                <!-- Compact View -->
+                <div class="p-3 sm:p-5">
+                    <div class="flex justify-between items-start gap-2 sm:gap-4">
+                        <form action="/links/{{ link.id }}/mark-done" method="post" class="flex-shrink-0 pt-0.5 sm:pt-1"
+                            onclick="event.stopPropagation()">
+                            <input type="checkbox" name="is_done" value="on" {% if link.is_done %}checked{% endif %}
+                                onchange="this.form.submit()"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4 sm:w-5 sm:h-5 cursor-pointer transition-all hover:border-primary-400"
+                                title="Mark as done" />
+                        </form>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5 flex-wrap">
+                                <a href="{{ link.url }}" target="_blank" rel="noopener"
+                                    class="font-semibold text-sm sm:text-base text-gray-900 hover:text-primary-600 flex items-center gap-1.5 truncate transition-colors group">
+                                    {{ link.title or link.url }}
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-primary-500 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                    </svg>
+                                </a>
+                                {% if not link.is_done %}
+                                <span
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-green-500 text-white flex-shrink-0 shadow-sm">NEW</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs sm:text-sm text-gray-500 break-all flex items-center gap-1 sm:gap-1.5">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                </svg>
+                                <span class="truncate">{{ link.url }}</span>
+                            </p>
+                        </div>
+                        <div class="flex sm:items-center gap-0.5 sm:gap-1.5 flex-shrink-0 flex-col sm:flex-row">
+                            {% if link.notes %}
+                            <button type="button" onclick="showNotesModal({{ link.id }}, '{{ link.title or link.url | replace("'", "\\'") }}', `{{ link.notes | replace("`", "\\`") | replace("\\n", "\\n") }}`)" 
+                                class="p-1.5 sm:p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5" title="View notes">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span class="text-xs sm:text-sm font-medium hidden sm:inline">Notes</span>
+                            </button>
+                            {% endif %}
+                            <button type="button" onclick="toggleEdit({{ link.id }})"
+                                class="p-1.5 sm:p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5" title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                <span class="text-xs sm:text-sm font-medium hidden sm:inline">Edit</span>
+                            </button>
+                            <button type="button" onclick="showDeleteModal({{ link.id }}, '{{ link.title | replace("'", "\\'") }}')"
+                                class="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Delete" aria-label="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% if link.collection %}
+                    <a href="/links?collection={{ link.collection.slug }}"
+                        class="inline-flex items-center gap-1 sm:gap-1.5 mt-2 sm:mt-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition cursor-pointer shadow-sm"
+                        title="Filter by this collection">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        {{ link.collection.name }}
+                    </a>
+                    {% endif %}
+                    {% if link.tags %}
+                    <div class="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                        {% for tag in link.tags %}<a href="/links?tag={{ tag.slug }}"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition cursor-pointer shadow-sm"
+                            title="Filter by this tag">
+                            <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                            /{{ tag.name }}
+                        </a>{% endfor %}
+                    </div>
+                    {% endif %}
+                    <p class="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3 flex items-center gap-1 sm:gap-1.5">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">{{ link.created_at | format_date }} – </span>{{ link.created_at | relative_time }}
+                    </p>
+                </div>
+
+                <!-- Edit Form (hidden by default) -->
+                <div class="hidden border-t border-gray-200 p-3 sm:p-5 bg-gradient-to-br from-gray-50 to-white" data-edit-form>
+                    <form action="/links/{{ link.id }}/update" method="post" class="space-y-3 sm:space-y-4">
+                        <div>
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">Title</label>
+                            <input type="text" name="title" value="{{ link.title or '' }}"
+                                class="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">Notes</label>
+                            <textarea name="notes" rows="3"
+                                class="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all resize-y shadow-sm">{{ link.notes or '' }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">Tags (comma separated)</label>
+                            <input type="text" name="tags" value="{{ link.tags | map(attribute='name') | join(', ') }}"
+                                class="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm"
+                                placeholder="productivity, design, reference" />
+                        </div>
+                        <div class="relative">
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">Collection</label>
+                            <input type="text" name="collection"
+                                value="{{ link.collection.name if link.collection else '' }}"
+                                class="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm"
+                                data-collection-input autocomplete="off" placeholder="Work, Personal, Research" />
+                            <div class="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"
+                                data-collection-suggestions></div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end pt-2">
+                            <button type="button" onclick="toggleEdit({{ link.id }})"
+                                class="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 text-gray-700 bg-white border-2 border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">Cancel</button>
+                            <button type="submit"
+                                class="w-full sm:w-auto px-5 sm:px-6 py-2 sm:py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Mobile Filter Toggle Button -->
+    <button id="filter-toggle-btn" class="lg:hidden fixed bottom-6 right-6 z-30 p-4 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-all">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+        </svg>
+    </button>
+    
+    <aside id="filters-sidebar" class="order-1 lg:order-2 lg:sticky lg:top-4 lg:space-y-4 fixed lg:relative inset-0 lg:inset-auto z-40 lg:z-auto bg-black/50 lg:bg-transparent hidden lg:block">
+        <!-- Mobile wrapper -->
+        <div class="lg:hidden h-full overflow-y-auto p-4" onclick="document.getElementById('filters-sidebar').classList.add('hidden')">
+            <div class="bg-white rounded-xl max-w-md mx-auto space-y-4" onclick="event.stopPropagation()">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-bold text-gray-900">Filters & Searches</h2>
+                    <button onclick="document.getElementById('filters-sidebar').classList.add('hidden')" class="p-2 hover:bg-gray-100 rounded-lg transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-4 pb-4 space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto">
+                    <!-- Filter content for mobile will be here -->
+                    {% include 'partials/filter_content.html' ignore missing %}
+        <!-- Quick Filters -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
+            <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Quick Filters
+            </h2>
+            <div class="flex flex-wrap gap-2">
+                <a href="/links?quick_filter=today" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'today' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Today
+                </a>
+                <a href="/links?quick_filter=this_week" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'this_week' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    This Week
+                </a>
+                <a href="/links?quick_filter=unread" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'unread' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    Unread
+                </a>
+                <a href="/links?quick_filter=has_notes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'has_notes' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Has Notes
+                </a>
+            </div>
+        </div>
+
+        <!-- Saved Searches -->
+        {% if saved_searches %}
+        <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
+            <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                </svg>
+                Saved Searches
+            </h2>
+            <div class="space-y-2">
+                {% for saved in saved_searches %}
+                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-all group">
+                    <a href="/links?saved_search_id={{ saved.id }}" class="flex-1 text-sm font-medium text-gray-700 hover:text-primary-600">
+                        {{ saved.name }}
+                    </a>
+                    <form action="/saved-searches/{{ saved.id }}/delete" method="post" class="inline">
+                        <button type="submit" class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all" title="Delete">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Advanced Filters -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
+            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
+                Filters
+            </h2>
+            <form method="get" id="filter-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </label>
+                    <input type="search" name="search" value="{{ search or '' }}" placeholder="Title, URL, or notes"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        Tag
+                    </label>
+                    <select name="tag"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
+                        <option value="">All Tags</option>
+                        {% for tag in tags %}
+                        <option value="{{ tag.slug }}" {% if filter_tag==tag.slug %}selected{% endif %}>/{{ tag.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        Collection
+                    </label>
+                    <select name="collection"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
+                        <option value="">All Collections</option>
+                        {% for collection in collections %}
+                        <option value="{{ collection.slug }}" {% if filter_collection==collection.slug %}selected{%
+                            endif %}>{{ collection.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Advanced Filters Collapsible Section -->
+                <div class="border-t border-gray-200 pt-4">
+                    <button type="button" onclick="toggleAdvancedFilters()" class="flex items-center justify-between w-full text-sm font-semibold text-gray-900 hover:text-primary-600 transition-colors">
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                            </svg>
+                            Advanced Filters
+                        </span>
+                        <svg id="advanced-chevron" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div id="advanced-filters" class="hidden mt-4 space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-900 mb-2">Date Range</label>
+                            <div class="space-y-2">
+                                <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From"
+                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                                <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To"
+                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="has_notes" value="true" {% if has_notes %}checked{% endif %}
+                                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
+                                <span class="text-sm font-medium text-gray-700">Has Notes</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="is_unread" value="true" {% if is_unread %}checked{% endif %}
+                                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
+                                <span class="text-sm font-medium text-gray-700">Unread Only</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" id="apply-btn"
+                        class="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:hover:bg-primary-600 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Apply
+                    </button>
+                    <a href="/links" id="clear-btn"
+                        class="flex-1 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm text-center flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Clear
+                    </a>
+                </div>
+
+                <!-- Save Search Button -->
+                <div class="border-t border-gray-200 pt-4">
+                    <button type="button" onclick="showSaveSearchModal()" class="w-full px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-lg font-medium text-sm hover:bg-indigo-100 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                        </svg>
+                        Save This Search
+                    </button>
+                </div>
+            </form>
+        </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Desktop filter content (visible on lg and up) -->
+        <div class="hidden lg:block space-y-4" style="margin-top: 0px;">
+            <!-- Copy of filter content for desktop -->
+            <!-- Quick Filters -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
+                <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Quick Filters
+                </h2>
+                <div class="flex flex-wrap gap-2">
+                    <a href="/links?quick_filter=today" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'today' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Today
+                    </a>
+                    <a href="/links?quick_filter=this_week" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'this_week' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        This Week
+                    </a>
+                    <a href="/links?quick_filter=unread" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'unread' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        Unread
+                    </a>
+                    <a href="/links?quick_filter=has_notes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if quick_filter == 'has_notes' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Has Notes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Saved Searches -->
+            {% if saved_searches %}
+            <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
+                <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                    </svg>
+                    Saved Searches
+                </h2>
+                <div class="space-y-2">
+                    {% for saved in saved_searches %}
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-all group">
+                        <a href="/links?saved_search_id={{ saved.id }}" class="flex-1 text-sm font-medium text-gray-700 hover:text-primary-600">
+                            {{ saved.name }}
+                        </a>
+                        <form action="/saved-searches/{{ saved.id }}/delete" method="post" class="inline">
+                            <button type="submit" class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all" title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Advanced Filters -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
+                <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                    </svg>
+                    Filters
+                </h2>
+                <form method="get" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Search
+                        </label>
+                        <input type="search" name="search" value="{{ search or '' }}" placeholder="Title, URL, or notes"
+                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                            Tag
+                        </label>
+                        <select name="tag"
+                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
+                            <option value="">All Tags</option>
+                            {% for tag in tags %}
+                            <option value="{{ tag.slug }}" {% if filter_tag==tag.slug %}selected{% endif %}>/{{ tag.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                            Collection
+                        </label>
+                        <select name="collection"
+                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
+                            <option value="">All Collections</option>
+                            {% for collection in collections %}
+                            <option value="{{ collection.slug }}" {% if filter_collection==collection.slug %}selected{%
+                                endif %}>{{ collection.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Advanced Filters Collapsible Section -->
+                    <div class="border-t border-gray-200 pt-4">
+                        <button type="button" onclick="toggleAdvancedFilters()" class="flex items-center justify-between w-full text-sm font-semibold text-gray-900 hover:text-primary-600 transition-colors">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                </svg>
+                                Advanced Filters
+                            </span>
+                            <svg id="advanced-chevron-desktop" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="advanced-filters-desktop" class="hidden mt-4 space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-900 mb-2">Date Range</label>
+                                <div class="space-y-2">
+                                    <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From"
+                                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                                    <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To"
+                                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="has_notes" value="true" {% if has_notes %}checked{% endif %}
+                                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
+                                    <span class="text-sm font-medium text-gray-700">Has Notes</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="is_unread" value="true" {% if is_unread %}checked{% endif %}
+                                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
+                                    <span class="text-sm font-medium text-gray-700">Unread Only</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit"
+                            class="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Apply
+                        </button>
+                        <a href="/links"
+                            class="flex-1 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm text-center flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Clear
+                        </a>
+                    </div>
+
+                    <!-- Save Search Button -->
+                    <div class="border-t border-gray-200 pt-4">
+                        <button type="button" onclick="showSaveSearchModal()" class="w-full px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-lg font-medium text-sm hover:bg-indigo-100 transition-all flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                            </svg>
+                            Save This Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<!-- Notes Modal -->
+<div id="notes-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick="closeNotesModal(event)">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-fadeIn" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2" id="modal-notes-title">
+        <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Notes
+      </h2>
+      <button type="button" onclick="closeNotesModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="p-6 overflow-y-auto flex-1">
+      <p class="text-base text-gray-700 leading-relaxed whitespace-pre-wrap" id="modal-notes-content"></p>
+    </div>
+    <div class="p-6 border-t border-gray-200 flex justify-end">
+      <button type="button" onclick="closeNotesModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all shadow-sm">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+    // Mobile filter sidebar toggle
+    document.getElementById('filter-toggle-btn')?.addEventListener('click', function() {
+        document.getElementById('filters-sidebar').classList.remove('hidden');
+    });
+    
+    // Collection data for autocomplete
+    const collections = {{ collections | map(attribute = 'name') | list | tojson }};
+
+    // Show notes modal
+    function showNotesModal(linkId, title, notes) {
+        document.getElementById('modal-notes-title').textContent = title;
+        document.getElementById('modal-notes-content').textContent = notes;
+        document.getElementById('notes-modal').classList.remove('hidden');
+    }
+
+    // Close notes modal
+    function closeNotesModal(event) {
+        if (!event || event.target.id === 'notes-modal' || event.type === 'click') {
+            document.getElementById('notes-modal').classList.add('hidden');
+        }
+    }
+
+    // Toggle edit form
+    function toggleEdit(linkId) {
+        const article = document.querySelector(`[data-link-id="${linkId}"]`);
+        const editForm = article.querySelector('[data-edit-form]');
+
+        // Close other expanded forms
+        document.querySelectorAll('[data-edit-form]').forEach(form => {
+            if (form !== editForm && !form.classList.contains('hidden')) {
+                form.classList.add('hidden');
+            }
+        });
+
+        // Toggle current form
+        if (editForm.classList.contains('hidden')) {
+            editForm.classList.remove('hidden');
+            // Focus first input
+            setTimeout(() => {
+                const firstInput = editForm.querySelector('input[name="title"]');
+                if (firstInput) firstInput.focus();
+            }, 100);
+        } else {
+            editForm.classList.add('hidden');
+        }
+    }
+
+    // Autocomplete functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-collection-input]').forEach(input => {
+            const suggestionsDiv = input.parentElement.querySelector('[data-collection-suggestions]');
+
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.trim().toLowerCase();
+
+                if (value.length === 0) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+
+                // Filter collections that match
+                const matches = collections.filter(c => c.toLowerCase().includes(value));
+
+                if (matches.length === 0) {
+                    // Show "Create new" option
+                    suggestionsDiv.innerHTML = `
+          <div class="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 cursor-pointer" data-collection-value="${e.target.value.trim()}">
+            <span class="text-indigo-600 font-medium">Create new:</span> "${e.target.value.trim()}"
+          </div>
+        `;
+                    suggestionsDiv.classList.remove('hidden');
+                } else {
+                    // Show matching collections
+                    suggestionsDiv.innerHTML = matches.map(c => `
+          <div class="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer" data-collection-value="${c}">
+            ${highlightMatch(c, value)}
+          </div>
+        `).join('');
+                    suggestionsDiv.classList.remove('hidden');
+                }
+
+                // Add click handlers to suggestions
+                suggestionsDiv.querySelectorAll('[data-collection-value]').forEach(item => {
+                    item.addEventListener('click', () => {
+                        input.value = item.dataset.collectionValue;
+                        suggestionsDiv.classList.add('hidden');
+                        input.focus();
+                    });
+                });
+            });
+
+            // Close suggestions when clicking outside
+            input.addEventListener('blur', (e) => {
+                setTimeout(() => {
+                    suggestionsDiv.classList.add('hidden');
+                }, 200);
+            });
+
+            // Navigate with keyboard
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    suggestionsDiv.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    function highlightMatch(text, query) {
+        const index = text.toLowerCase().indexOf(query);
+        if (index === -1) return text;
+
+        const before = text.substring(0, index);
+        const match = text.substring(index, index + query.length);
+        const after = text.substring(index + query.length);
+
+        return `${before}<span class="font-semibold text-indigo-600">${match}</span>${after}`;
+    }
+
+    // Filter checking
+    (function () {
+        const form = document.querySelector('aside form');
+        const applyBtn = document.getElementById('apply-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const searchInput = form.querySelector('input[name="search"]');
+        const tagSelect = form.querySelector('select[name="tag"]');
+        const collectionSelect = form.querySelector('select[name="collection"]');
+
+        function checkFilters() {
+            const hasSearch = searchInput.value.trim() !== '';
+            const hasTag = tagSelect.value !== '';
+            const hasCollection = collectionSelect.value !== '';
+            const hasAnyFilter = hasSearch || hasTag || hasCollection;
+
+            // Disable/enable apply button
+            applyBtn.disabled = !hasAnyFilter;
+
+            // Disable/enable clear button
+            if (hasAnyFilter) {
+                clearBtn.classList.remove('opacity-50', 'pointer-events-none');
+                clearBtn.classList.add('hover:bg-gray-200');
+            } else {
+                clearBtn.classList.add('opacity-50', 'pointer-events-none');
+                clearBtn.classList.remove('hover:bg-gray-200');
+            }
+        }
+
+        // Check on page load
+        checkFilters();
+
+        // Check on input changes
+        searchInput.addEventListener('input', checkFilters);
+        tagSelect.addEventListener('change', checkFilters);
+        collectionSelect.addEventListener('change', checkFilters);
+    })();
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeNotesModal();
+            closeDeleteModal();
+        }
+    });
+
+    function showDeleteModal(linkId, linkTitle) {
+        const modal = document.getElementById('deleteModal');
+        const titleElement = document.getElementById('deleteModalTitle');
+        const form = document.getElementById('deleteModalForm');
+        
+        // Truncate to first 5 words
+        const words = (linkTitle || '').split(' ');
+        const truncated = words.slice(0, 5).join(' ') + (words.length > 5 ? '...' : '');
+        
+        titleElement.textContent = truncated || 'Untitled';
+        form.action = `/links/${linkId}/delete`;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // Toggle advanced filters
+    function toggleAdvancedFilters() {
+        const advanced = document.getElementById('advanced-filters');
+        const chevron = document.getElementById('advanced-chevron');
+        advanced.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180');
+    }
+
+    // Show/hide save search modal
+    function showSaveSearchModal() {
+        document.getElementById('save-search-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSaveSearchModal() {
+        document.getElementById('save-search-modal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // Handle save search form submission
+    document.addEventListener('DOMContentLoaded', () => {
+        const saveSearchForm = document.getElementById('save-search-form');
+        if (saveSearchForm) {
+            saveSearchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                // Get current filter values
+                const formData = new FormData(document.getElementById('filter-form'));
+                const saveFormData = new FormData(saveSearchForm);
+                
+                // Add filter values to save form
+                formData.forEach((value, key) => {
+                    if (value && key !== 'page' && key !== 'page_size') {
+                        saveFormData.append(key, value);
+                    }
+                });
+                
+                // Submit the form
+                fetch('/saved-searches/create', {
+                    method: 'POST',
+                    body: saveFormData
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+<!-- Save Search Modal -->
+<div id="save-search-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick="closeSaveSearchModal()">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md animate-fadeIn" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+        </svg>
+        Save This Search
+      </h2>
+      <button type="button" onclick="closeSaveSearchModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <form id="save-search-form" class="p-6">
+      <div class="mb-6">
+        <label class="block text-sm font-semibold text-gray-900 mb-2">Search Name</label>
+        <input type="text" name="name" required placeholder="e.g., Work Links This Week"
+          class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button type="button" onclick="closeSaveSearchModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all shadow-sm">Cancel</button>
+        <button type="submit" class="px-6 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+          </svg>
+          Save Search
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <!-- Background overlay -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeDeleteModal()"></div>
+    
+    <!-- Modal panel -->
+    <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <div class="bg-white px-6 pt-6 pb-5 sm:p-7 sm:pb-5">
+        <div class="sm:flex sm:items-start">
+          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-full bg-red-100 sm:mx-0 sm:h-12 sm:w-12">
+            <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <div class="mt-4 text-center sm:mt-0 sm:ml-4 sm:text-left">
+            <h3 class="text-xl leading-6 font-bold text-gray-900" id="modal-title">Delete Link</h3>
+            <div class="mt-3">
+              <p class="text-sm text-gray-600 leading-relaxed">
+                Are you sure you want to delete "<span id="deleteModalTitle" class="font-semibold text-gray-900"></span>"? This action cannot be undone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-6 py-4 sm:px-7 sm:flex sm:flex-row-reverse gap-3">
+        <form id="deleteModalForm" method="post" class="inline">
+          <button type="submit" class="w-full inline-flex justify-center items-center gap-2 rounded-lg border border-transparent shadow-md px-5 py-2.5 bg-red-600 text-base font-medium text-white hover:bg-red-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm transition-all active:bg-red-800">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Delete
+          </button>
+        </form>
+        <button type="button" onclick="closeDeleteModal()" class="mt-3 w-full inline-flex justify-center rounded-lg border-2 border-gray-200 shadow-sm px-5 py-2.5 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

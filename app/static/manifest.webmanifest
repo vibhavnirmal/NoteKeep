@@ -1,0 +1,16 @@
+{
+  "name": "NoteKeep",
+  "short_name": "NoteKeep",
+  "start_url": "/add",
+  "display": "standalone",
+  "background_color": "#2563eb",
+  "theme_color": "#2563eb",
+  "description": "Capture links quickly and organize them when you are back home.",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "128x128"
+    }
+  ]
+}

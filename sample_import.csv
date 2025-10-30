@@ -1,0 +1,5 @@
+url,title,notes,tags
+https://example.com/article1,Introduction to Python,Great beginner resource,python,tutorial
+https://example.com/article2,Advanced FastAPI,,python,fastapi,web
+https://github.com/microsoft/vscode,VS Code Repository,Check out extensions,tools,github
+https://news.ycombinator.com,Hacker News,Daily reading,news

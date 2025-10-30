@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}Inbox · NoteKeep{% endblock %}
+{% block content %}
+<div class="mb-6 sm:mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Inbox</h1>
+      <p class="text-sm sm:text-base text-gray-600 flex items-center gap-2">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+        Review new links, add tags, and file them into collections.
+      </p>
+    </div>
+    {% if links %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-3 self-start sm:self-auto">
+      <div class="text-xs sm:text-sm text-gray-500">Pending</div>
+      <div class="text-xl sm:text-2xl font-bold text-indigo-600">{{ total }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% if success_message %}
+<div class="mb-4 sm:mb-6 rounded-xl border-l-4 border-green-500 bg-green-50 px-4 sm:px-5 py-3 sm:py-4 text-sm text-green-800 shadow-sm flex items-start gap-3">
+  <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+  </svg>
+  <span>{{ success_message }}</span>
+</div>
+{% endif %}
+{% if not links %}
+<div class="text-center py-12 sm:py-16 px-4">
+  <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-indigo-100 mb-4">
+    <svg class="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+  </div>
+  <h3 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">All caught up!</h3>
+  <p class="text-gray-500 mb-6 text-sm sm:text-base">Nothing waiting right now. Capture something new from the Add page.</p>
+  <a href="/add" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition shadow-sm text-sm sm:text-base">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+    </svg>
+    Add Link
+  </a>
+</div>
+{% else %}
+<div class="space-y-2 sm:space-y-3">
+  {% for link in links %}
+  <article class="bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all duration-200" data-link-id="{{ link.id }}">
+    <!-- Compact View -->
+    <div class="flex items-start sm:items-center gap-2 sm:gap-3 p-3 sm:p-4 cursor-pointer" onclick="toggleExpand({{ link.id }})">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-1">
+          <a href="{{ link.url }}" target="_blank" rel="noopener" class="font-semibold text-gray-900 hover:text-indigo-600 block truncate text-sm sm:text-base flex items-center gap-1.5" onclick="event.stopPropagation()">
+            {{ link.title or link.url }}
+            <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+          </a>
+        </div>
+        <div class="flex items-center gap-2 mt-1 flex-wrap">
+          <div class="flex items-center gap-1 min-w-0">
+            <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+            </svg>
+            <p class="text-xs text-gray-500 truncate max-w-[180px] sm:max-w-none">{{ link.url }}</p>
+          </div>
+          {% if link.tags %}
+          <div class="flex gap-1 flex-wrap">
+            {% for tag in link.tags %}<a href="/links?tag={{ tag.slug }}" onclick="event.stopPropagation()" class="inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition cursor-pointer" title="View all links with this tag">
+              <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+              </svg>
+              {{ tag.name }}
+            </a>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div class="text-right sm:block">
+          <div class="text-xs font-medium text-gray-600">{{ link.created_at | relative_time }}</div>
+        </div>
+        <div class="flex items-center gap-1 sm:gap-2">
+          <button type="button" class="text-gray-400 hover:text-indigo-600 transition-all expand-icon p-1 rounded hover:bg-indigo-50">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <button type="button" onclick="showDeleteModal({{ link.id }}, '{{ link.title | replace("'", "\\'") }}'); event.stopPropagation();" class="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all p-1 rounded" title="Delete">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Expanded Form (hidden by default) -->
+    <div class="hidden border-t border-gray-200 p-4 sm:p-5 bg-gradient-to-br from-gray-50 to-white" data-form-content>
+      <form action="/links/{{ link.id }}/update" method="post" class="space-y-3 sm:space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-1.5">Title</label>
+          <input type="text" name="title" value="{{ link.title or '' }}" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-1.5">Notes</label>
+          <textarea name="notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y">{{ link.notes or '' }}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-1.5">Tags (comma separated)</label>
+          <input type="text" name="tags" data-tag-input value="{{ link.tags | map(attribute='name') | join(', ') }}" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+          {% if top_tags %}
+          <div class="mt-1.5 flex flex-wrap gap-1">
+            <span class="text-xs text-gray-500">Quick add:</span>
+            {% for tag in top_tags %}
+            <button type="button" onclick="addTag(this, '{{ tag.name }}')" class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 transition cursor-pointer">{{ tag.name }}</button>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="relative">
+          <label class="block text-sm font-medium text-gray-900 mb-1.5">Collection</label>
+          <input 
+            type="text" 
+            name="collection" 
+            value="{{ link.collection.name if link.collection else '' }}" 
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+            data-collection-input
+            autocomplete="off"
+          />
+          <div class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-48 overflow-y-auto hidden" data-collection-suggestions></div>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="mark_done" value="on" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            <span class="text-sm">Mark as done</span>
+          </label>
+          <div class="flex gap-2">
+            <button type="button" onclick="toggleExpand({{ link.id }})" class="flex-1 sm:flex-none px-3 py-2 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-100 transition">Cancel</button>
+            <button type="submit" class="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+<script>
+// Collection data for autocomplete
+const collections = {{ collections | map(attribute='name') | list | tojson }};
+
+// Autocomplete functionality
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-collection-input]').forEach(input => {
+    const suggestionsDiv = input.parentElement.querySelector('[data-collection-suggestions]');
+    
+    input.addEventListener('input', (e) => {
+      const value = e.target.value.trim().toLowerCase();
+      
+      if (value.length === 0) {
+        suggestionsDiv.classList.add('hidden');
+        return;
+      }
+      
+      // Filter collections that match
+      const matches = collections.filter(c => c.toLowerCase().includes(value));
+      
+      if (matches.length === 0) {
+        // Show "Create new" option
+        suggestionsDiv.innerHTML = `
+          <div class="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 cursor-pointer" data-collection-value="${e.target.value.trim()}">
+            <span class="text-indigo-600 font-medium">Create new:</span> "${e.target.value.trim()}"
+          </div>
+        `;
+        suggestionsDiv.classList.remove('hidden');
+      } else {
+        // Show matching collections
+        suggestionsDiv.innerHTML = matches.map(c => `
+          <div class="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer" data-collection-value="${c}">
+            ${highlightMatch(c, value)}
+          </div>
+        `).join('');
+        suggestionsDiv.classList.remove('hidden');
+      }
+      
+      // Add click handlers to suggestions
+      suggestionsDiv.querySelectorAll('[data-collection-value]').forEach(item => {
+        item.addEventListener('click', () => {
+          input.value = item.dataset.collectionValue;
+          suggestionsDiv.classList.add('hidden');
+          input.focus();
+        });
+      });
+    });
+    
+    // Close suggestions when clicking outside
+    input.addEventListener('blur', (e) => {
+      setTimeout(() => {
+        suggestionsDiv.classList.add('hidden');
+      }, 200);
+    });
+    
+    // Navigate with keyboard
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        suggestionsDiv.classList.add('hidden');
+      }
+    });
+  });
+});
+
+function highlightMatch(text, query) {
+  const index = text.toLowerCase().indexOf(query);
+  if (index === -1) return text;
+  
+  const before = text.substring(0, index);
+  const match = text.substring(index, index + query.length);
+  const after = text.substring(index + query.length);
+  
+  return `${before}<span class="font-semibold text-indigo-600">${match}</span>${after}`;
+}
+
+function toggleExpand(linkId) {
+  const article = document.querySelector(`[data-link-id="${linkId}"]`);
+  const formContent = article.querySelector('[data-form-content]');
+  const expandIcon = article.querySelector('.expand-icon');
+  
+  // Close other expanded items
+  document.querySelectorAll('[data-form-content]').forEach(form => {
+    if (form !== formContent) {
+      form.classList.add('hidden');
+      form.closest('article').querySelector('.expand-icon').style.transform = '';
+    }
+  });
+  
+  // Toggle current item
+  if (formContent.classList.contains('hidden')) {
+    formContent.classList.remove('hidden');
+    expandIcon.style.transform = 'rotate(180deg)';
+    // Focus first input
+    setTimeout(() => {
+      const firstInput = formContent.querySelector('input[name="title"]');
+      if (firstInput) firstInput.focus();
+    }, 100);
+  } else {
+    formContent.classList.add('hidden');
+    expandIcon.style.transform = '';
+  }
+}
+
+function addTag(button, tagName) {
+  const form = button.closest('form');
+  const input = form.querySelector('input[data-tag-input]');
+  
+  if (!input) return;
+  
+  const currentTags = input.value.trim();
+  const tagsArray = currentTags ? currentTags.split(',').map(t => t.trim()) : [];
+  
+  if (!tagsArray.includes(tagName)) {
+    tagsArray.push(tagName);
+    input.value = tagsArray.join(', ');
+  }
+  
+  input.focus();
+}
+
+function showDeleteModal(linkId, linkTitle) {
+  const modal = document.getElementById('deleteModal');
+  const titleElement = document.getElementById('deleteModalTitle');
+  const form = document.getElementById('deleteModalForm');
+  
+  // Truncate to first 5 words
+  const words = (linkTitle || 'Untitled Link').split(' ');
+  const truncated = words.slice(0, 5).join(' ') + (words.length > 5 ? '...' : '');
+  
+  titleElement.textContent = truncated || 'Untitled Link';
+  form.action = `/links/${linkId}/delete`;
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+  const modal = document.getElementById('deleteModal');
+  modal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+</script>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <!-- Background overlay -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeDeleteModal()"></div>
+    
+    <!-- Modal panel -->
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="sm:flex sm:items-start">
+          <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Delete Link</h3>
+            <div class="mt-2">
+              <p class="text-sm text-gray-500">
+                Are you sure you want to delete "<span id="deleteModalTitle" class="font-medium text-gray-900"></span>"? This action cannot be undone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+        <form id="deleteModalForm" method="post" class="inline">
+          <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+            Delete
+          </button>
+        </form>
+        <button type="button" onclick="closeDeleteModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

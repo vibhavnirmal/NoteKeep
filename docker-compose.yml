@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  notekeep:
+    build: .
+    container_name: notekeep
+    ports:
+      - "8696:8696"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:///./notekeep.db
+    volumes:
+      - ./notekeep.db:/app/notekeep.db
+    restart: unless-stopped
