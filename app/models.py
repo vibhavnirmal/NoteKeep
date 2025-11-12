@@ -4,7 +4,6 @@ from datetime import datetime
 
 from slugify import slugify
 from sqlalchemy import (
-    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -51,6 +50,8 @@ class Tag(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(60), unique=True, nullable=False)
+    icon: Mapped[str | None] = mapped_column(String(50))  # Icon name/identifier
+    color: Mapped[str | None] = mapped_column(String(20))  # Color for the icon
 
     links: Mapped[list[Link]] = relationship(
         "Link", secondary=link_tag_table, back_populates="tags", lazy="selectin"
@@ -64,8 +65,6 @@ class Link(Base, TimestampMixin):
     url: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str | None] = mapped_column(String(255))
     notes: Mapped[str | None] = mapped_column(Text)
-    is_done: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
-    in_inbox: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
 
     collection_id: Mapped[int | None] = mapped_column(ForeignKey("collections.id"))
     collection: Mapped[Collection | None] = relationship("Collection", back_populates="links")
@@ -73,20 +72,6 @@ class Link(Base, TimestampMixin):
     tags: Mapped[list[Tag]] = relationship(
         "Tag", secondary=link_tag_table, back_populates="links", lazy="selectin"
     )
-
-
-class SavedSearch(Base, TimestampMixin):
-    __tablename__ = "saved_searches"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    search_query: Mapped[str | None] = mapped_column(String(255))
-    tag_slug: Mapped[str | None] = mapped_column(String(60))
-    collection_slug: Mapped[str | None] = mapped_column(String(120))
-    has_notes: Mapped[bool | None] = mapped_column(Boolean)
-    is_unread: Mapped[bool | None] = mapped_column(Boolean)
-    date_from: Mapped[str | None] = mapped_column(String(10))  # YYYY-MM-DD format
-    date_to: Mapped[str | None] = mapped_column(String(10))  # YYYY-MM-DD format
 
 
 @event.listens_for(Collection, "before_insert")

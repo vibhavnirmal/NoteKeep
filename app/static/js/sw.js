@@ -1,4 +1,4 @@
-const CACHE_NAME = 'notekeep-shell-v1';
+const CACHE_NAME = 'notekeep-shell-v2';
 const OFFLINE_URLS = [
   '/add',
   '/static/css/main.css',

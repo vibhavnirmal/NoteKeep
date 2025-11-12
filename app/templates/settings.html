@@ -64,12 +64,17 @@
         {% for tag in tags %}
         <div class="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition">
           <div class="flex items-center gap-2 flex-1 min-w-0">
+            {% if tag.icon %}
+            <div class="flex items-center justify-center w-7 h-7 rounded" style="background-color: {{ tag.color or '#f3f4f6' }};">
+              <i data-lucide="{{ tag.icon }}" class="w-4 h-4" style="color: {% if tag.color %}#ffffff{% else %}#374151{% endif %};"></i>
+            </div>
+            {% endif %}
             <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">/{{ tag.name }}</span>
             <span class="text-xs text-gray-400">({{ tag.link_count }})</span>
           </div>
           <div class="flex items-center gap-2">
             <button 
-              onclick="editTag({{ tag.id }}, '{{ tag.name }}')" 
+              onclick="editTag({{ tag.id }}, '{{ tag.name | replace("'", "\\'") }}', '{{ tag.icon or "" }}', '{{ tag.color or "" }}')" 
               class="text-indigo-600 hover:text-indigo-700 text-xs sm:text-sm font-medium"
               title="Edit"
             >
@@ -150,8 +155,8 @@
 </div>
 
 <!-- Edit Modal -->
-<div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeModal(event)">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onclick="event.stopPropagation()">
+<div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onclick="closeModal(event)">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
     <h2 class="text-xl font-semibold text-gray-900 mb-4" id="modal-title">Edit</h2>
     <form id="edit-form" method="post" class="space-y-4">
       <div>
@@ -164,7 +169,80 @@
           class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
         />
       </div>
-      <div class="flex gap-2 justify-end">
+      
+      <!-- Tag-specific fields -->
+      <div id="tag-customization" class="hidden space-y-4">
+        <!-- Icon Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-2">Icon (optional)</label>
+          <input type="hidden" name="icon" id="selected-icon" value="">
+          <div class="mb-3 p-3 bg-gray-50 rounded border border-gray-200">
+            <div class="flex items-center gap-3">
+              <div id="icon-preview" class="w-10 h-10 flex items-center justify-center bg-white rounded border border-gray-300">
+                <span class="text-gray-400 text-xs">None</span>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-700" id="icon-name">No icon selected</p>
+                <button type="button" onclick="clearIcon()" class="text-xs text-red-600 hover:text-red-700 mt-1">Clear icon</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Icon Categories -->
+          <div class="border border-gray-200 rounded">
+            <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
+              <input 
+                type="text" 
+                id="icon-search" 
+                placeholder="Search icons..." 
+                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                oninput="filterIcons(this.value)"
+              />
+            </div>
+            <div class="max-h-64 overflow-y-auto p-3">
+              {% for category, icons in icon_library.items() %}
+              <div class="icon-category mb-4 last:mb-0" data-category="{{ category }}">
+                <h4 class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">{{ category }}</h4>
+                <div class="grid grid-cols-8 gap-2">
+                  {% for icon in icons %}
+                  <button 
+                    type="button"
+                    class="icon-option p-2 hover:bg-indigo-50 rounded border border-transparent hover:border-indigo-300 transition flex items-center justify-center"
+                    data-icon="{{ icon }}"
+                    onclick="selectIcon('{{ icon }}')"
+                    title="{{ icon }}"
+                  >
+                    <i data-lucide="{{ icon }}" class="w-5 h-5 text-gray-700"></i>
+                  </button>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Color Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-2">Color (optional)</label>
+          <input type="hidden" name="color" id="selected-color" value="">
+          <div class="grid grid-cols-6 gap-2">
+            {% for color in color_options %}
+            <button 
+              type="button"
+              class="color-option w-full h-10 rounded border-2 border-transparent hover:border-gray-400 transition"
+              data-color="{{ color }}"
+              onclick="selectColor('{{ color }}')"
+              style="background-color: {{ color }};"
+              title="{{ color }}"
+            ></button>
+            {% endfor %}
+          </div>
+          <button type="button" onclick="clearColor()" class="text-xs text-red-600 hover:text-red-700 mt-2">Clear color</button>
+        </div>
+      </div>
+      
+      <div class="flex gap-2 justify-end pt-4 border-t border-gray-200">
         <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-100 transition">Cancel</button>
         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition">Save Changes</button>
       </div>
@@ -192,25 +270,136 @@ function switchTab(tabName) {
   document.getElementById(tabName + '-tab').classList.remove('hidden');
 }
 
-function editTag(id, name) {
+function editTag(id, name, icon = '', color = '') {
   document.getElementById('modal-title').textContent = 'Edit Tag';
   document.getElementById('edit-name-input').value = name;
   document.getElementById('edit-form').action = '/settings/tags/' + id + '/update';
+  
+  // Show tag customization options
+  document.getElementById('tag-customization').classList.remove('hidden');
+  
+  // Set icon if exists
+  if (icon) {
+    selectIcon(icon);
+  } else {
+    clearIcon();
+  }
+  
+  // Set color if exists
+  if (color) {
+    selectColor(color);
+  } else {
+    clearColor();
+  }
+  
   document.getElementById('edit-modal').classList.remove('hidden');
   document.getElementById('edit-name-input').focus();
+  
+  // Initialize Lucide icons
+  setTimeout(() => {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }, 100);
 }
 
 function editCollection(id, name) {
   document.getElementById('modal-title').textContent = 'Edit Collection';
   document.getElementById('edit-name-input').value = name;
   document.getElementById('edit-form').action = '/settings/collections/' + id + '/update';
+  
+  // Hide tag customization options
+  document.getElementById('tag-customization').classList.add('hidden');
+  
   document.getElementById('edit-modal').classList.remove('hidden');
   document.getElementById('edit-name-input').focus();
+}
+
+function selectIcon(iconName) {
+  document.getElementById('selected-icon').value = iconName;
+  document.getElementById('icon-name').textContent = iconName;
+  
+  // Update preview with actual icon
+  const preview = document.getElementById('icon-preview');
+  preview.innerHTML = `<i data-lucide="${iconName}" class="w-6 h-6 text-gray-700"></i>`;
+  
+  // Re-initialize Lucide icons for the preview
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+  
+  // Highlight selected icon
+  document.querySelectorAll('.icon-option').forEach(btn => {
+    btn.classList.remove('bg-indigo-100', 'border-indigo-500');
+  });
+  const iconButton = document.querySelector(`button[data-icon="${iconName}"]`);
+  if (iconButton) {
+    iconButton.classList.add('bg-indigo-100', 'border-indigo-500');
+  }
+}
+
+function clearIcon() {
+  document.getElementById('selected-icon').value = '';
+  document.getElementById('icon-name').textContent = 'No icon selected';
+  document.getElementById('icon-preview').innerHTML = '<span class="text-gray-400 text-xs">None</span>';
+  
+  document.querySelectorAll('.icon-option').forEach(btn => {
+    btn.classList.remove('bg-indigo-100', 'border-indigo-500');
+  });
+}
+
+function selectColor(colorValue) {
+  document.getElementById('selected-color').value = colorValue;
+  
+  // Highlight selected color
+  document.querySelectorAll('.color-option').forEach(btn => {
+    if (btn.dataset.color === colorValue) {
+      btn.classList.remove('border-transparent');
+      btn.classList.add('border-gray-900', 'ring-2', 'ring-gray-900');
+    } else {
+      btn.classList.remove('border-gray-900', 'ring-2', 'ring-gray-900');
+      btn.classList.add('border-transparent');
+    }
+  });
+}
+
+function clearColor() {
+  document.getElementById('selected-color').value = '';
+  document.querySelectorAll('.color-option').forEach(btn => {
+    btn.classList.remove('border-gray-900', 'ring-2', 'ring-gray-900');
+    btn.classList.add('border-transparent');
+  });
+}
+
+function filterIcons(searchTerm) {
+  const term = searchTerm.toLowerCase().trim();
+  const categories = document.querySelectorAll('.icon-category');
+  
+  categories.forEach(category => {
+    const icons = category.querySelectorAll('.icon-option');
+    let hasVisibleIcons = false;
+    
+    icons.forEach(icon => {
+      const iconName = icon.dataset.icon.toLowerCase();
+      if (!term || iconName.includes(term)) {
+        icon.style.display = '';
+        hasVisibleIcons = true;
+      } else {
+        icon.style.display = 'none';
+      }
+    });
+    
+    // Hide category if no icons match
+    category.style.display = hasVisibleIcons ? '' : 'none';
+  });
 }
 
 function closeModal(event) {
   if (!event || event.target.id === 'edit-modal') {
     document.getElementById('edit-modal').classList.add('hidden');
+    // Reset icon search
+    document.getElementById('icon-search').value = '';
+    filterIcons('');
   }
 }
 
@@ -351,5 +540,14 @@ window.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+
+<script>
+// Initialize Lucide icons when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+});
+</script>
 
 {% endblock %}

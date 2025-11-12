@@ -9,6 +9,8 @@ class TagRead(BaseModel):
     id: int
     name: str
     slug: str
+    icon: str | None = None
+    color: str | None = None
 
 
 class CollectionRead(BaseModel):
@@ -28,9 +30,7 @@ class LinkBase(BaseModel):
 class LinkCreate(LinkBase):
     tags: list[str] = Field(default_factory=list, max_length=10)
     collection: str | None = Field(None, max_length=100)
-    is_done: bool = False
-    in_inbox: bool = True
-    
+
     @field_validator('tags')
     @classmethod
     def validate_tags(cls, v: list[str]) -> list[str]:
@@ -93,8 +93,6 @@ class LinkUpdate(BaseModel):
     notes: str | None = None
     tags: list[str] | None = None
     collection: str | None = None
-    is_done: bool | None = None
-    in_inbox: bool | None = None
 
 
 class LinkRead(BaseModel):
@@ -104,7 +102,6 @@ class LinkRead(BaseModel):
     url: str
     title: str | None
     notes: str | None
-    is_done: bool
     in_inbox: bool
     created_at: datetime
     updated_at: datetime

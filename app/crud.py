@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Collection, Link, SavedSearch, Tag, link_tag_table
+from .models import Collection, Link, Tag, link_tag_table
 from .schemas import LinkCreate, LinkUpdate
 
 DEFAULT_PAGE_SIZE = 25
@@ -56,7 +56,10 @@ def normalize_url(url: str) -> str:
 
 
 def _normalize_tag(tag: str) -> str:
-    return tag.strip().lower()
+    normalized = tag.strip().lower()
+    if normalized.startswith("youtu"):
+        return "youtube"
+    return normalized
 
 
 def get_or_create_collection(session: Session, name: str | None) -> Collection | None:
@@ -87,6 +90,11 @@ def get_or_create_tags(session: Session, tag_names: Iterable[str]) -> list[Tag]:
     cleaned = {_normalize_tag(tag) for tag in tag_names if tag and tag.strip()}
     if not cleaned:
         return tags
+    
+    # Limit to maximum 4 tags
+    if len(cleaned) > 4:
+        cleaned = set(list(cleaned)[:4])
+    
     existing = session.execute(select(Tag).where(func.lower(Tag.name).in_(cleaned))).scalars().all()
     tags.extend(existing)
     for tag in cleaned:
@@ -121,8 +129,6 @@ def create_link(session: Session, payload: LinkCreate) -> Link:
         url=str(payload.url),
         title=payload.title,
         notes=payload.notes,
-        is_done=payload.is_done,
-        in_inbox=payload.in_inbox,
         collection=collection,
         tags=tags,
     )
@@ -145,10 +151,6 @@ def update_link(session: Session, link: Link, payload: LinkUpdate) -> Link:
         link.title = payload.title
     if payload.notes is not None:
         link.notes = payload.notes
-    if payload.is_done is not None:
-        link.is_done = payload.is_done
-    if payload.in_inbox is not None:
-        link.in_inbox = payload.in_inbox
     if payload.collection is not None:
         link.collection = get_or_create_collection(session, payload.collection)
     if payload.tags is not None:
@@ -170,11 +172,7 @@ def list_links(
     search: str | None = None,
     tag: str | None = None,
     collection: str | None = None,
-    include_done: bool = True,
-    only_inbox: bool = False,
-    exclude_inbox: bool = False,
     has_notes: bool | None = None,
-    is_unread: bool | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
     page: int = 1,
@@ -190,12 +188,25 @@ def list_links(
     filters = []
 
     if search:
-        pattern = f"%{search.lower()}%"
-        filters.append(
-            func.lower(Link.title).like(pattern)
-            | func.lower(Link.url).like(pattern)
-            | func.lower(Link.notes).like(pattern)
-        )
+        search_term = search.strip()
+        if search_term:
+            base_pattern = f"%{search_term.lower()}%"
+            search_expression = (
+                func.lower(Link.title).like(base_pattern)
+                | func.lower(Link.url).like(base_pattern)
+                | func.lower(Link.notes).like(base_pattern)
+            )
+
+            tag_term = search_term.lstrip("#").strip()
+            if tag_term:
+                tag_pattern = f"%{tag_term.lower()}%"
+                search_expression = (
+                    search_expression
+                    | Link.tags.any(func.lower(Tag.name).like(tag_pattern))
+                    | Link.tags.any(func.lower(Tag.slug).like(tag_pattern))
+                )
+
+            filters.append(search_expression)
 
     if tag:
         lowered_tag = tag.lower()
@@ -209,15 +220,6 @@ def list_links(
         count_query = count_query.join(Link.collection)
         filters.append(func.lower(Collection.slug) == lowered_collection)
 
-    if not include_done:
-        filters.append(Link.is_done.is_(False))
-
-    if only_inbox:
-        filters.append(Link.in_inbox.is_(True))
-
-    if exclude_inbox:
-        filters.append(Link.in_inbox.is_(False))
-
     # Advanced filters
     if has_notes is not None:
         if has_notes:
@@ -225,12 +227,6 @@ def list_links(
             filters.append(Link.notes != "")
         else:
             filters.append((Link.notes.is_(None)) | (Link.notes == ""))
-
-    if is_unread is not None:
-        if is_unread:
-            filters.append(Link.is_done.is_(False))
-        else:
-            filters.append(Link.is_done.is_(True))
 
     # Date range filters
     if date_from:
@@ -292,16 +288,6 @@ def list_collections(session: Session) -> list[Collection]:
     return list(session.execute(select(Collection).order_by(Collection.name)).scalars())
 
 
-def count_unread_inbox(session: Session) -> int:
-    """Count links in inbox that are not marked as done."""
-    count = session.execute(
-        select(func.count(Link.id))
-        .where(Link.in_inbox == True)
-        .where(Link.is_done == False)
-    ).scalar_one()
-    return count or 0
-
-
 def export_all_links(session: Session) -> list[Link]:
     return list(
         session.execute(
@@ -337,19 +323,23 @@ def create_tag(session: Session, name: str) -> Tag:
     return tag
 
 
-def update_tag(session: Session, tag: Tag, new_name: str) -> Tag:
+def update_tag(session: Session, tag: Tag, new_name: str, icon: str | None = None, color: str | None = None) -> Tag:
     normalized = _normalize_tag(new_name)
     if not normalized:
         raise ValueError("Tag name cannot be empty")
-    
+
     # Check if another tag with the same name exists
     existing = session.execute(
         select(Tag).where(func.lower(Tag.name) == func.lower(normalized), Tag.id != tag.id)
     ).scalar_one_or_none()
     if existing:
         raise ValueError(f"Tag '{normalized}' already exists")
-    
+
     tag.name = normalized
+    if icon is not None:
+        tag.icon = icon if icon.strip() else None
+    if color is not None:
+        tag.color = color if color.strip() else None
     session.flush()
     return tag
 
@@ -440,52 +430,3 @@ def list_collections_with_counts(session: Session) -> list[tuple[Collection, int
         .all()
     )
     return [(collection, count) for collection, count in collection_counts]
-
-
-# Saved Search CRUD operations
-def create_saved_search(
-    session: Session,
-    name: str,
-    search_query: str | None = None,
-    tag_slug: str | None = None,
-    collection_slug: str | None = None,
-    has_notes: bool | None = None,
-    is_unread: bool | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
-) -> SavedSearch:
-    """Create a new saved search"""
-    saved_search = SavedSearch(
-        name=name,
-        search_query=search_query,
-        tag_slug=tag_slug,
-        collection_slug=collection_slug,
-        has_notes=has_notes,
-        is_unread=is_unread,
-        date_from=date_from,
-        date_to=date_to,
-    )
-    session.add(saved_search)
-    session.flush()
-    session.refresh(saved_search)
-    return saved_search
-
-
-def list_saved_searches(session: Session) -> Sequence[SavedSearch]:
-    """List all saved searches"""
-    return session.execute(
-        select(SavedSearch).order_by(SavedSearch.created_at.desc())
-    ).scalars().all()
-
-
-def get_saved_search(session: Session, search_id: int) -> SavedSearch | None:
-    """Get a saved search by ID"""
-    return session.execute(
-        select(SavedSearch).where(SavedSearch.id == search_id)
-    ).scalar_one_or_none()
-
-
-def delete_saved_search(session: Session, saved_search: SavedSearch) -> None:
-    """Delete a saved search"""
-    session.delete(saved_search)
-    session.flush()

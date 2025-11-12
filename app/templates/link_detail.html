@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}{{ link.title or link.url }} - NoteKeep{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Back button -->
+    <div class="mb-4">
+        <a href="/links" class="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Links
+        </a>
+    </div>
+
+    <!-- Link Detail Card -->
+    <article class="bg-white border border-gray-200 rounded-xl shadow-lg">
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-900 mb-3">{{ link.title or link.url }}</h1>
+            <a href="{{ link.url }}" target="_blank" rel="noopener"
+                class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors break-all">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                </svg>
+                <span class="font-medium">{{ link.url }}</span>
+            </a>
+        </div>
+
+        <!-- Details -->
+        <div class="p-6 space-y-6">
+            <!-- Collection -->
+            {% if link.collection %}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">Collection</h3>
+                <a href="/links?collection={{ link.collection.slug }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    {{ link.collection.name }}
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Tags -->
+            {% if link.tags %}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">Tags</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in link.tags %}
+                    <a href="/links?tag={{ tag.slug }}"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium {% if tag.icon %}shadow-sm{% else %}bg-indigo-50 text-indigo-700{% endif %} hover:opacity-80 transition"
+                        style="{% if tag.icon %}background-color: {{ tag.color or '#6b7280' }}; color: #ffffff;{% endif %}">
+                        {% if tag.icon %}
+                        <i data-lucide="{{ tag.icon }}" class="w-4 h-4"></i>
+                        {% else %}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        {% endif %}
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Notes -->
+            {% if link.notes %}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">Notes</h3>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p class="text-gray-700 whitespace-pre-wrap">{{ link.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Metadata -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-1">Added</h3>
+                    <p class="text-gray-600 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        {{ link.created_at | format_date }} ({{ link.created_at | relative_time }})
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-1">Last Updated</h3>
+                    <p class="text-gray-600 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        {{ link.updated_at | format_date }} ({{ link.updated_at | relative_time }})
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+            <button type="button" onclick="toggleEdit()"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-all shadow-md">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit
+            </button>
+            <button type="button" onclick="showDeleteModal()"
+                class="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium hover:bg-red-100 transition-all inline-flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                Delete
+            </button>
+        </div>
+
+        <!-- Edit Form (hidden by default) -->
+        <div id="edit-form" class="hidden border-t border-gray-200 p-6 bg-white">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">Edit Link</h2>
+            <form action="/links/{{ link.id }}/update" method="post" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Title</label>
+                    <input type="text" name="title" value="{{ link.title or '' }}"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Notes</label>
+                    <textarea name="notes" rows="5"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all resize-y">{{ link.notes or '' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Tags (comma separated, max 4)</label>
+                    <input type="text" name="tags" id="tags-input" value="{{ link.tags | map(attribute='name') | join(', ') }}"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                        placeholder="productivity, design, reference" />
+                    <p class="text-xs text-gray-500 mt-1">Maximum 4 tags allowed</p>
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Collection</label>
+                    <input type="text" name="collection"
+                        value="{{ link.collection.name if link.collection else '' }}"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                        data-collection-input autocomplete="off" placeholder="Work, Personal, Research" />
+                    <div class="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"
+                        data-collection-suggestions></div>
+                </div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="toggleEdit()"
+                        class="px-5 py-2.5 text-gray-700 bg-white border-2 border-gray-200 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-300 transition-all">Cancel</button>
+                    <button type="submit"
+                        class="px-6 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-all shadow-md">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </article>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeDeleteModal()"></div>
+        <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-6 pt-6 pb-5 sm:p-7 sm:pb-5">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-full bg-red-100 sm:mx-0 sm:h-12 sm:w-12">
+                        <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div class="mt-4 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-xl leading-6 font-bold text-gray-900">Delete Link</h3>
+                        <div class="mt-3">
+                            <p class="text-sm text-gray-600">
+                                Are you sure you want to delete "<span class="font-semibold text-gray-900">{{ link.title or link.url }}</span>"? This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 sm:px-7 sm:flex sm:flex-row-reverse gap-3">
+                <form action="/links/{{ link.id }}/delete" method="post" class="inline">
+                    <button type="submit"
+                        class="w-full inline-flex justify-center items-center gap-2 rounded-lg border border-transparent shadow-md px-5 py-2.5 bg-red-600 text-base font-medium text-white hover:bg-red-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Delete
+                    </button>
+                </form>
+                <button type="button" onclick="closeDeleteModal()"
+                    class="mt-3 w-full inline-flex justify-center rounded-lg border-2 border-gray-200 shadow-sm px-5 py-2.5 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm transition-all">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    const collections = {{ collections | map(attribute='name') | list | tojson }};
+
+    function toggleEdit() {
+        document.getElementById('edit-form').classList.toggle('hidden');
+    }
+
+    function showDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+
+    // Collection autocomplete
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        const input = document.querySelector('[data-collection-input]');
+        const suggestionsDiv = document.querySelector('[data-collection-suggestions]');
+
+        if (input && suggestionsDiv) {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.toLowerCase();
+                if (!value) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+
+                const matches = collections.filter(c => c.toLowerCase().includes(value));
+                if (matches.length === 0) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+
+                suggestionsDiv.innerHTML = matches.map(name => 
+                    `<div class="px-4 py-2 hover:bg-primary-50 cursor-pointer transition-colors" onclick="document.querySelector('[data-collection-input]').value = '${name}'; document.querySelector('[data-collection-suggestions]').classList.add('hidden');">${name}</div>`
+                ).join('');
+                suggestionsDiv.classList.remove('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                    suggestionsDiv.classList.add('hidden');
+                }
+            });
+        }
+
+        // Tag limit validation
+        const tagsInput = document.getElementById('tags-input');
+        const editForm = document.querySelector('#edit-form form');
+        
+        if (tagsInput && editForm) {
+            editForm.addEventListener('submit', (e) => {
+                const tags = tagsInput.value.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                if (tags.length > 4) {
+                    e.preventDefault();
+                    alert('Maximum 4 tags allowed. You have ' + tags.length + ' tags. Please remove ' + (tags.length - 4) + '.');
+                    tagsInput.focus();
+                    return false;
+                }
+            });
+            
+            // Real-time feedback
+            tagsInput.addEventListener('input', () => {
+                const tags = tagsInput.value.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                if (tags.length > 4) {
+                    tagsInput.classList.add('border-red-500', 'ring-red-500');
+                    tagsInput.classList.remove('border-gray-200', 'ring-primary-500');
+                } else {
+                    tagsInput.classList.remove('border-red-500', 'ring-red-500');
+                    tagsInput.classList.add('border-gray-200');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -127,7 +127,6 @@ async function handleSubmit(event) {
     notes: null,
     tags: [],
     collection: null,
-    is_done: false,
   };
   if (!link.url) {
     setStatus('URL is required.', 'error');
@@ -136,7 +135,7 @@ async function handleSubmit(event) {
 
   try {
     await submitLink(link);
-    window.location.href = '/inbox';
+    window.location.href = '/links';
     return;
   } catch (error) {
     if (!navigator.onLine || (error instanceof TypeError && error.message.includes('fetch'))) {
