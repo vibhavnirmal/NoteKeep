@@ -42,12 +42,14 @@
             </div>
             <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">No links found</h3>
             <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">No links match your current filters. Try adjusting your search criteria.</p>
+            {% if total %}
             <a href="/links" class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-all shadow-md hover:shadow-lg">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
                 Clear All Filters
             </a>
+            {% endif %}
         </div>
         {% else %}
         <div class="space-y-2 sm:space-y-3">
@@ -182,11 +184,12 @@
         {% endif %}
     </div>
     
-    <!-- Mobile Filter Toggle Button -->
-    <button id="filter-toggle-btn" class="lg:hidden fixed bottom-6 right-6 z-30 p-4 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-all">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+    <!-- Mobile Filter Toggle Button (restyled and repositioned above bottom nav) -->
+    <button id="filter-toggle-btn" aria-label="Open filters" class="lg:hidden fixed bottom-20 right-4 z-60 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-all flex items-center gap-2 px-3 py-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 13.414V18a1 1 0 01-.553.894l-4 2A1 1 0 019 20v-6.586L3.293 6.707A1 1 0 013 6V4z"></path>
         </svg>
+        <span class="text-sm font-medium">Filters</span>
     </button>
     
     <aside id="filters-sidebar" class="order-1 lg:order-2 lg:sticky lg:top-4 lg:space-y-4 fixed lg:relative inset-0 lg:inset-auto z-40 lg:z-auto bg-black/50 lg:bg-transparent hidden lg:block">
@@ -469,7 +472,7 @@
                     </svg>
                     Filters
                 </h2>
-                <form method="get" class="space-y-4">
+                <form method="get" id="filter-form-desktop" class="space-y-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -554,14 +557,14 @@
                     </div>
 
                     <div class="flex gap-2 pt-2">
-                        <button type="submit"
+                        <button type="submit" id="apply-btn-desktop"
                             class="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                             Apply
                         </button>
-                        <a href="/links"
+                        <a href="/links" id="clear-btn-desktop"
                             class="flex-1 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm text-center flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -731,39 +734,69 @@
 
     // Filter checking
     (function () {
-        const form = document.querySelector('aside form');
+        // Mobile form elements
+        const mobileForm = document.querySelector('aside form#filter-form');
         const applyBtn = document.getElementById('apply-btn');
         const clearBtn = document.getElementById('clear-btn');
-        const searchInput = form.querySelector('input[name="search"]');
-        const tagSelect = form.querySelector('select[name="tag"]');
-        const collectionSelect = form.querySelector('select[name="collection"]');
 
-        function checkFilters() {
-            const hasSearch = searchInput.value.trim() !== '';
-            const hasTag = tagSelect.value !== '';
-            const hasCollection = collectionSelect.value !== '';
-            const hasAnyFilter = hasSearch || hasTag || hasCollection;
+        // Desktop form elements
+        const desktopForm = document.getElementById('filter-form-desktop');
+        const applyBtnDesktop = document.getElementById('apply-btn-desktop');
+        const clearBtnDesktop = document.getElementById('clear-btn-desktop');
 
-            // Disable/enable apply button
-            applyBtn.disabled = !hasAnyFilter;
+        // Utility to check a form's inputs
+        function formHasAnyFilter(form) {
+            if (!form) return false;
+            const searchInput = form.querySelector('input[name="search"]');
+            const tagSelect = form.querySelector('select[name="tag"]');
+            const collectionSelect = form.querySelector('select[name="collection"]');
+            const hasSearch = searchInput && searchInput.value.trim() !== '';
+            const hasTag = tagSelect && tagSelect.value !== '';
+            const hasCollection = collectionSelect && collectionSelect.value !== '';
+            return hasSearch || hasTag || hasCollection;
+        }
 
-            // Disable/enable clear button
-            if (hasAnyFilter) {
-                clearBtn.classList.remove('opacity-50', 'pointer-events-none');
-                clearBtn.classList.add('hover:bg-gray-200');
-            } else {
-                clearBtn.classList.add('opacity-50', 'pointer-events-none');
-                clearBtn.classList.remove('hover:bg-gray-200');
+        function updateButtons() {
+            const mobileHas = formHasAnyFilter(mobileForm);
+            const desktopHas = formHasAnyFilter(desktopForm);
+
+            if (applyBtn) applyBtn.disabled = !mobileHas;
+            if (clearBtn) {
+                if (mobileHas) {
+                    clearBtn.classList.remove('opacity-50', 'pointer-events-none');
+                    clearBtn.classList.add('hover:bg-gray-200');
+                } else {
+                    clearBtn.classList.add('opacity-50', 'pointer-events-none');
+                    clearBtn.classList.remove('hover:bg-gray-200');
+                }
+            }
+
+            if (applyBtnDesktop) applyBtnDesktop.disabled = !desktopHas;
+            if (clearBtnDesktop) {
+                if (desktopHas) {
+                    clearBtnDesktop.classList.remove('opacity-50', 'pointer-events-none');
+                    clearBtnDesktop.classList.add('hover:bg-gray-200');
+                } else {
+                    clearBtnDesktop.classList.add('opacity-50', 'pointer-events-none');
+                    clearBtnDesktop.classList.remove('hover:bg-gray-200');
+                }
             }
         }
 
-        // Check on page load
-        checkFilters();
+        // Initial check
+        updateButtons();
 
-        // Check on input changes
-        searchInput.addEventListener('input', checkFilters);
-        tagSelect.addEventListener('change', checkFilters);
-        collectionSelect.addEventListener('change', checkFilters);
+        // Attach listeners if forms exist
+        [mobileForm, desktopForm].forEach(form => {
+            if (!form) return;
+            const searchInput = form.querySelector('input[name="search"]');
+            const tagSelect = form.querySelector('select[name="tag"]');
+            const collectionSelect = form.querySelector('select[name="collection"]');
+
+            if (searchInput) searchInput.addEventListener('input', updateButtons);
+            if (tagSelect) tagSelect.addEventListener('change', updateButtons);
+            if (collectionSelect) collectionSelect.addEventListener('change', updateButtons);
+        });
     })();
 
     // Close modal on Escape key
@@ -795,12 +828,18 @@
         document.body.style.overflow = '';
     }
 
-    // Toggle advanced filters
+    // Toggle advanced filters (mobile + desktop)
     function toggleAdvancedFilters() {
-        const advanced = document.getElementById('advanced-filters');
-        const chevron = document.getElementById('advanced-chevron');
-        advanced.classList.toggle('hidden');
-        chevron.classList.toggle('rotate-180');
+        const mobileAdvanced = document.getElementById('advanced-filters');
+        const mobileChevron = document.getElementById('advanced-chevron');
+        const desktopAdvanced = document.getElementById('advanced-filters-desktop');
+        const desktopChevron = document.getElementById('advanced-chevron-desktop');
+
+        if (mobileAdvanced) mobileAdvanced.classList.toggle('hidden');
+        if (mobileChevron) mobileChevron.classList.toggle('rotate-180');
+
+        if (desktopAdvanced) desktopAdvanced.classList.toggle('hidden');
+        if (desktopChevron) desktopChevron.classList.toggle('rotate-180');
     }
 
     // Show/hide save search modal
