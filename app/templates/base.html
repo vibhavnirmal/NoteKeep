@@ -92,7 +92,7 @@
     </header>
     {% endif %}
     {% endblock %}
-    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-4 sm:py-6">{% block content %}{% endblock %}</main>
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 mb-20">{% block content %}{% endblock %}</main>
     <footer class="py-4 sm:py-6 border-t border-gray-200 bg-white/50 backdrop-blur-sm">
         <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
             <p class="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
@@ -113,7 +113,7 @@
         }
     </script>
     <!-- Mobile bottom navigation (thumb-friendly) -->
-    <nav class="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-35 bg-white/90 backdrop-blur-md border border-gray-200 rounded-full shadow-md px-3 py-2 flex items-center gap-4">
+    <nav class="lg:hidden flex fixed bottom-0 left-1/2 -translate-x-1/2 z-35 bg-white/90 backdrop-blur-md border border-gray-200 w-full justify-around shadow-md px-3 py-2 flex items-center gap-4">
         <a href="/add" class="flex flex-col items-center text-gray-700 hover:text-primary-600 px-2">
             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>

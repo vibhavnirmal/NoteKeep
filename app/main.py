@@ -17,7 +17,6 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # pragma: no cover - simple bootstrap hook
         Base.metadata.create_all(bind=engine)
-        
         yield
 
     app = FastAPI(title="NoteKeep", lifespan=lifespan)

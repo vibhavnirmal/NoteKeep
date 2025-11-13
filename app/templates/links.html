@@ -1,11 +1,16 @@
 {% extends "base.html" %}
 {% block title %}All Links · NoteKeep{% endblock %}
 {% block content %}
-<div class="mb-4 sm:mb-6">
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">All Links</h1>
-    
+<div class="mb-4 sm:mb-6">    
     <!-- Quick Tag Filters with Icons -->
-    <div class="flex items-center gap-2 sm:gap-3 mt-3">
+    <div class="flex items-center gap-2 sm:gap-3 mt-3 overflow-x-auto pb-2" 
+        dont show scrollbar for mobile view it looks bad
+        style="
+        overflow-x: auto;
+        -ms-overflow-style: none;  /* Internet Explorer and Edge */
+        scrollbar-width: none;  /* Firefox */
+        "
+    >
         {% if filter_tag %}
         <a href="/links" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all shadow-sm" title="Clear tag filter">
             <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
@@ -71,7 +76,7 @@
         {% if date_to %}
         <input type="hidden" name="date_to" value="{{ date_to }}" />
         {% endif %}
-        <div class="flex flex-col sm:flex-row gap-2">
+        <div class="flex flex-row gap-2">
             <div class="relative flex-1">
                 <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
                 <input type="search" name="search" value="{{ search or '' }}" aria-label="Search links and titles" placeholder="Search links, titles, or notes" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
@@ -80,7 +85,7 @@
                 <button type="submit" class="px-4 sm:px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 justify-center">
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Search</span>
-                    <span class="sm:hidden">Go</span>
+                    <!-- <span class="sm:hidden">Go</span> -->
                 </button>
                 {% if search %}
                 <button type="button" data-clear-search class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm flex items-center gap-2">
@@ -93,12 +98,14 @@
     </form>
 
     {% if collection_summaries %}
-    <section class="mt-6 space-y-5" aria-labelledby="collections-heading">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 id="collections-heading" class="text-xs font-semibold uppercase tracking-wide text-gray-500">Collections</h2>
-                <p class="text-sm text-gray-600">Jump quickly or browse the most used spaces.</p>
-            </div>
+    <section class="mt-6 space-y-2" aria-labelledby="collections-heading">
+        <div class="flex flex-row gap-2 justify-between">
+            <button id="filter-toggle-btn" aria-label="Open filters" class="hover:bg-primary-600 hover:text-white hover:rounded-md transition-all flex items-center gap-2 px-3 py-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 13.414V18a1 1 0 01-.553.894l-4 2A1 1 0 019 20v-6.586L3.293 6.707A1 1 0 013 6V4z"></path>
+                </svg>
+                <span class="text-sm font-medium">Filters</span>
+            </button>
             <button type="button" data-open-collection-browser class="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700">
                 <i data-lucide="view" class="w-4 h-4"></i>
                 Browse all collections
@@ -106,16 +113,19 @@
         </div>
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label for="collection-quick-selector" class="text-sm font-medium text-gray-700">Go to collection</label>
-            <div class="flex flex-1 gap-2">
-                <div class="relative flex-1 max-w-md">
+            <label for="collection-quick-selector" class="text-sm font-medium text-gray-700 hidden sm:block">Go to collection</label>
+            <div class="flex flex-col sm:flex-1 sm:flex-row gap-2">
+                <div class="relative hidden sm:flex flex-1 max-w-md">
                     <i data-lucide="folder" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                    <select id="collection-quick-selector" class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <select id="collection-quick-selector" class="w-full appearance-none pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         <option value="" {% if not filter_collection %}selected{% endif %}>All collections</option>
                         {% for collection in collections %}
                         <option value="{{ collection.slug }}" {% if filter_collection == collection.slug %}selected{% endif %}>{{ collection.name }}</option>
                         {% endfor %}
                     </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+                    </div>
                 </div>
                 {% if filter_collection %}
                 <a href="/links" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white shadow-sm hover:bg-gray-50">
@@ -312,15 +322,7 @@
         </div>
     </div>
     {% endif %}
-    
-    <!-- Mobile Filter Toggle Button (restyled and repositioned above bottom nav) -->
-    <button id="filter-toggle-btn" aria-label="Open filters" class="lg:hidden fixed bottom-20 right-4 z-60 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-all flex items-center gap-2 px-3 py-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 13.414V18a1 1 0 01-.553.894l-4 2A1 1 0 019 20v-6.586L3.293 6.707A1 1 0 013 6V4z"></path>
-        </svg>
-        <span class="text-sm font-medium">Filters</span>
-    </button>
-    
+        
     <aside id="filters-sidebar" class="order-1 lg:order-2 lg:sticky lg:top-4 lg:space-y-4 fixed lg:relative inset-0 lg:inset-auto z-40 lg:z-auto bg-black/50 lg:bg-transparent hidden lg:block">
         <!-- Mobile wrapper -->
         <div class="lg:hidden h-full overflow-y-auto p-4" onclick="document.getElementById('filters-sidebar').classList.add('hidden')">
@@ -630,10 +632,10 @@
         }
 
         const collectionBrowser = document.getElementById('collection-browser');
-        const openCollectionBrowserButton = document.querySelector('[data-open-collection-browser]');
+        const openCollectionBrowserButtons = document.querySelectorAll('[data-open-collection-browser]');
         const closeButtons = document.querySelectorAll('[data-close-collection-browser]');
 
-        if (collectionBrowser && openCollectionBrowserButton) {
+        if (collectionBrowser && openCollectionBrowserButtons.length) {
             const openBrowser = () => {
                 collectionBrowser.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -643,7 +645,9 @@
                 document.body.style.overflow = '';
             };
 
-            openCollectionBrowserButton.addEventListener('click', openBrowser);
+            openCollectionBrowserButtons.forEach((button) => {
+                button.addEventListener('click', openBrowser);
+            });
 
             closeButtons.forEach((btn) => {
                 btn.addEventListener('click', closeBrowser);
