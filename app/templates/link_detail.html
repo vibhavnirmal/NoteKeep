@@ -237,6 +237,11 @@
             .filter((item) => item && item.name && item.name.trim().length > 0)
         : [];
 
+    const normalizeTagName = (value) => (value || '').trim().toLowerCase();
+    const tagMetadata = new Map(
+        tagOptions.map((tag) => [normalizeTagName(tag.name), { icon: tag.icon || null, color: tag.color || null }]),
+    );
+
     if (collectionDataEl) {
         collectionDataEl.remove();
     }
@@ -322,7 +327,7 @@
             return;
         }
 
-        const selectedContainer = comboboxRoot.querySelector('[data-selected-tags]');
+    const selectedContainer = comboboxRoot.querySelector('[data-selected-tags]');
         const emptyPlaceholder = comboboxRoot.querySelector('[data-empty-placeholder]');
         const tagTextInput = comboboxRoot.querySelector('[data-tag-input]');
         const suggestionPanel = comboboxRoot.querySelector('[data-tag-suggestions]');
@@ -336,7 +341,7 @@
         let filteredSuggestions = [];
         let highlightedIndex = -1;
 
-        const normalize = (value) => value.trim().toLowerCase();
+    const normalize = normalizeTagName;
 
         const parseTags = (value) => {
             const seen = new Set();
@@ -374,6 +379,18 @@
             }
         };
 
+        const createSuggestionIcon = (iconName, color) => {
+            const iconEl = document.createElement('i');
+            iconEl.dataset.lucide = iconName;
+            iconEl.className = 'w-4 h-4 flex-shrink-0';
+            if (color) {
+                iconEl.style.color = color;
+            } else {
+                iconEl.classList.add('text-gray-500');
+            }
+            return iconEl;
+        };
+
         const renderSelectedTags = () => {
             if (!selectedContainer) {
                 return;
@@ -383,6 +400,15 @@
                 const pill = document.createElement('span');
                 pill.dataset.tagPill = 'true';
                 pill.className = 'inline-flex items-center gap-2 bg-white border border-gray-300 text-sm text-gray-700 px-3 py-1.5 rounded-full shadow-sm';
+
+                const metadata = tagMetadata.get(normalize(tag));
+                if (metadata && metadata.icon) {
+                    const iconWrapper = document.createElement('span');
+                    iconWrapper.className = 'flex items-center justify-center';
+                    const iconEl = createSuggestionIcon(metadata.icon, metadata.color);
+                    iconWrapper.appendChild(iconEl);
+                    pill.appendChild(iconWrapper);
+                }
 
                 const label = document.createElement('span');
                 label.textContent = tag;
@@ -401,6 +427,10 @@
 
             if (emptyPlaceholder) {
                 emptyPlaceholder.classList.toggle('hidden', selectedTags.length > 0);
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
             }
         };
 
@@ -498,8 +528,18 @@
                 const item = document.createElement('button');
                 item.type = 'button';
                 item.dataset.suggestion = 'true';
-                item.className = 'w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 transition';
-                item.textContent = tag.name;
+                item.className = 'w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 transition flex items-center gap-3';
+
+                if (tag.icon) {
+                    const iconEl = createSuggestionIcon(tag.icon, tag.color);
+                    item.appendChild(iconEl);
+                }
+
+                const label = document.createElement('span');
+                label.className = 'flex-1 truncate';
+                label.textContent = tag.name;
+                item.appendChild(label);
+
                 item.addEventListener('mouseenter', () => highlightSuggestion(index));
                 item.addEventListener('mousedown', (event) => event.preventDefault());
                 item.addEventListener('click', () => {
@@ -512,20 +552,33 @@
 
             suggestionPanel.classList.remove('hidden');
             highlightSuggestion(0);
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         };
 
-        const updateSuggestions = (query) => {
+        const updateSuggestions = (query, showWhenEmpty = false) => {
             if (!tagTextInput) {
                 return;
             }
             const normalizedQuery = query.trim().toLowerCase();
             const selectedKeys = new Set(selectedTags.map(normalize));
-            if (!normalizedQuery) {
+            const shouldHide = !normalizedQuery && !showWhenEmpty;
+            if (shouldHide) {
                 hideSuggestions();
                 return;
             }
             const matches = tagOptions
-                .filter((tag) => !selectedKeys.has(normalize(tag.name)) && (!normalizedQuery || tag.name.toLowerCase().includes(normalizedQuery)))
+                .filter((tag) => {
+                    if (selectedKeys.has(normalize(tag.name))) {
+                        return false;
+                    }
+                    if (!normalizedQuery) {
+                        return true;
+                    }
+                    return tag.name.toLowerCase().includes(normalizedQuery);
+                })
                 .slice(0, 8);
             renderSuggestions(matches);
         };
@@ -549,18 +602,21 @@
         };
 
         tagTextInput.addEventListener('focus', () => {
-            updateSuggestions(tagTextInput.value);
+            updateSuggestions(tagTextInput.value, true);
         });
 
         tagTextInput.addEventListener('input', (event) => {
             showWarning(false);
-            updateSuggestions(event.target.value);
+            updateSuggestions(event.target.value, true);
         });
 
         tagTextInput.addEventListener('keydown', (event) => {
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
+                    if (suggestionPanel.classList.contains('hidden')) {
+                        updateSuggestions(tagTextInput.value, true);
+                    }
                     moveHighlight(1);
                     break;
                 case 'ArrowUp':
