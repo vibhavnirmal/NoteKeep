@@ -7,7 +7,7 @@
         {% if filter_tag %}
         <a href="/links" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all shadow-sm" title="Clear tag filter">
             <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
-            <span class="text-sm text-gray-700">Clear Filter</span>
+            <span class="text-sm text-gray-700">Clear</span>
         </a>
         {% endif %}
         <a href="/links?tag=youtube" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-red-400 hover:bg-red-50 transition-all shadow-sm group {% if filter_tag == 'youtube' %}border-red-500 bg-red-50{% endif %}" title="Filter by YouTube">
@@ -15,9 +15,6 @@
         </a>
         <a href="/links?tag=instagram" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-pink-400 hover:bg-pink-50 transition-all shadow-sm group {% if filter_tag == 'instagram' %}border-pink-500 bg-pink-50{% endif %}" title="Filter by Instagram">
             <i data-lucide="instagram" class="w-5 h-5 text-pink-600"></i>
-        </a>
-        <a href="/links?tag=telegram" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-sky-400 hover:bg-sky-50 transition-all shadow-sm group {% if filter_tag == 'telegram' %}border-sky-500 bg-sky-50{% endif %}" title="Filter by Telegram">
-            <i data-lucide="send" class="w-5 h-5 text-sky-600"></i>
         </a>
         <a href="/links?tag=reddit" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all shadow-sm group {% if filter_tag == 'reddit' %}border-orange-500 bg-orange-50{% endif %}" title="Filter by Reddit">
             <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
@@ -27,10 +24,10 @@
         <a href="/links?tag=github" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all shadow-sm group {% if filter_tag == 'github' %}border-gray-900 bg-gray-50{% endif %}" title="Filter by GitHub">
             <i data-lucide="github" class="w-5 h-5 text-gray-900"></i>
         </a>
-        <a href="/links?tag=twitter" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-black hover:bg-gray-50 transition-all shadow-sm group {% if filter_tag == 'twitter' %}border-gray-900 bg-gray-900{% endif %}" title="Filter by Twitter/X">
-            <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
-            </svg>
+        <a href="/links?tag=X" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-black hover:bg-gray-50 transition-all shadow-sm group {% if filter_tag == 'X' %}border-gray-900 bg-gray-900{% endif %}" title="Filter by Twitter/X">
+            <svg class="w-5 h-5 text-black" viewBox="0 0 24 24">    
+                <path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/>
+            </svg> 
         </a>
         <a href="/links?tag=linkedin" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-blue-600 hover:bg-blue-50 transition-all shadow-sm group {% if filter_tag == 'linkedin' %}border-blue-900 bg-blue-900{% endif %}" title="Filter by LinkedIn">
             <i data-lucide="linkedin" class="w-5 h-5 text-blue-700"></i>
@@ -333,116 +330,91 @@
                 <div class="px-4 pb-4 space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto">
                     <!-- Filter content for mobile will be here -->
                     {% include 'partials/filter_content.html' ignore missing %}
-        <!-- Advanced Filters -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
-            <h2 class="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
-                Filters
-            </h2>
-            <form method="get" id="filter-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search
-                    </label>
-                    <input type="search" name="search" value="{{ search or '' }}" placeholder="Title, URL, or notes"
-                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                        </svg>
-                        Tag
-                    </label>
-                    <select name="tag"
-                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
-                        <option value="">All Tags</option>
-                        {% for tag in tags %}
-                        <option value="{{ tag.slug }}" {% if filter_tag==tag.slug %}selected{% endif %}>/{{ tag.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                        </svg>
-                        Collection
-                    </label>
-                    <select name="collection"
-                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
-                        <option value="">All Collections</option>
-                        {% for collection in collections %}
-                        <option value="{{ collection.slug }}" {% if filter_collection==collection.slug %}selected{%
-                            endif %}>{{ collection.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- Advanced Filters Collapsible Section -->
-                <div class="border-t border-gray-200 pt-4">
-                    <button type="button" onclick="toggleAdvancedFilters()" class="flex items-center justify-between w-full text-sm font-semibold text-gray-900 hover:text-primary-600 transition-colors">
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-                            </svg>
-                            Advanced Filters
-                        </span>
-                        <svg id="advanced-chevron" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div id="advanced-filters" class="hidden mt-4 space-y-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-900 mb-2">Date Range</label>
-                            <div class="space-y-2">
-                                <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From"
-                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
-                                <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To"
-                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                    <!-- Advanced Filters -->
+                    <div class="">
+                        <div class="flex float-right text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i data-lucide="sliders" class="w-5 h-5 text-gray-900"></i>
+                            Filters
+                        </div>
+                        <form method="get" id="filter-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                                    <i data-lucide="tag" class="w-4 h-4 text-gray-500"></i>
+                                    Tag
+                                </label>
+                                <select name="tag"
+                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
+                                    <option value="">All Tags</option>
+                                    {% for tag in tags %}
+                                    <option value="{{ tag.slug }}" {% if filter_tag==tag.slug %}selected{% endif %}>/{{ tag.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
-                        </div>
-                        <div>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="has_notes" value="true" {% if has_notes %}checked{% endif %}
-                                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
-                                <span class="text-sm font-medium text-gray-700">Has Notes</span>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="is_unread" value="true" {% if is_unread %}checked{% endif %}
-                                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
-                                <span class="text-sm font-medium text-gray-700">Unread Only</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                                    <i data-lucide="folder" class="w-4 h-4 text-gray-500"></i>
+                                    Collection
+                                </label>
+                                <select name="collection"
+                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
+                                    <option value="">All Collections</option>
+                                    {% for collection in collections %}
+                                    <option value="{{ collection.slug }}" {% if filter_collection==collection.slug %}selected{%
+                                        endif %}>{{ collection.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Advanced Filters Collapsible Section -->
+                            <div class="">
+                                <div id="advanced-filters" class="mt-4 space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-900 mb-2">
+                                            <i data-lucide="calendar" class="w-4 h-4 text-gray-500 inline-block mr-1"></i>
+                                            Date Range</label>
+                                        <div class="space-y-2">
+                                            <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From"
+                                                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                                            <input type="date" name="date_to" value="{{ date_to or '' }}" placeholder="To"
+                                                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" name="has_notes" value="true" {% if has_notes %}checked{% endif %}
+                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
+                                            <span class="text-sm font-medium text-gray-700">Has Notes</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" name="is_unread" value="true" {% if is_unread %}checked{% endif %}
+                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
+                                            <span class="text-sm font-medium text-gray-700">Unread Only</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
 
-                <div class="flex gap-2 pt-2">
-                    <button type="submit" id="apply-btn"
-                        class="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:shadow-none flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Apply
-                    </button>
-                    <a href="/links" id="clear-btn"
-                        class="flex-1 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm text-center flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                        Clear
-                    </a>
-                </div>
-            </form>
-        </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="submit" id="apply-btn"
+                                    class="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:shadow-none flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Apply
+                                </button>
+                                <a href="/links" id="clear-btn"
+                                    class="flex-1 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm text-center flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    Clear
+                                </a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

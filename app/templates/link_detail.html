@@ -5,31 +5,29 @@
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <!-- Back button -->
-    <div class="mb-4">
+    <!-- <div class="m-4">
         <a href="/links" class="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
             Back to Links
         </a>
-    </div>
+    </div> -->
 
     <!-- Link Detail Card -->
-    <article class="bg-white border border-gray-200 rounded-xl shadow-lg">
+    <article class="">
         <!-- Header -->
-        <div class="flex flex-col p-6 border-b border-gray-200">
+        <div class="flex flex-col p-3 border-b border-gray-200">
             <h1 class="text-base sm:text-lg font-bold text-gray-900 break-words max-w-full">{{ link.title or link.url }}</h1>
             <a href="{{ link.url }}" target="_blank" rel="noopener"
                 class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors break-all">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                </svg>
+                <i data-lucide="external-link" class="w-3 h-3 flex-shrink-0"></i>
                 <span class="text-sm">{{ link.url }}</span>
             </a>
         </div>
 
         <!-- Details -->
-        <div class="p-6 space-y-6">
+        <div class="p-3 space-y-3">
             <!-- Collection -->
             {% if link.collection %}
             <div>
@@ -100,7 +98,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+        <div class="p-3 border-t border-gray-200 bg-gray-50 flex gap-3">
             <button type="button" onclick="toggleEdit()"
                 class="flex-1 inline-flex items-center text-sm justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-all shadow-md">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +116,7 @@
         </div>
 
         <!-- Edit Form (hidden by default) -->
-        <div id="edit-form" class="hidden border-t border-gray-200 p-6 bg-white">
+        <div id="edit-form" class="hidden border-t border-gray-200 p-3 bg-white">
             <h2 class="text-base sm:text-lg font-bold text-gray-900 mb-4">Edit Link</h2>
             <form action="/links/{{ link.id }}/update" method="post" class="space-y-4">
                 <div>
@@ -150,14 +148,17 @@
                         <p class="text-xs text-red-600 hidden" data-tag-limit-warning>You can choose up to 4 tags. Remove one to add another.</p>
                     </div>
                 </div>
-                <div class="relative">
+                <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Collection</label>
-                    <input type="text" name="collection"
-                        value="{{ link.collection.name if link.collection else '' }}"
-                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-                        data-collection-input autocomplete="off" placeholder="Work, Personal, Research" />
-                    <div class="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"
-                        data-collection-suggestions></div>
+                    <div class="relative">
+                        <input type="text" name="collection"
+                            value="{{ link.collection.name if link.collection else '' }}"
+                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                            data-collection-input autocomplete="off" placeholder="Start typing to search or add a collection" />
+                        <div class="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"
+                            data-collection-suggestions></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Choose from existing collections or type to create a new one.</p>
                 </div>
                 <div class="flex gap-3 justify-end pt-2">
                     <button type="button" onclick="toggleEdit()"
@@ -211,13 +212,30 @@
     </div>
 </div>
 
-<script type="application/json" id="collection-data">{{ collections | map(attribute='name') | list | tojson }}</script>
+<script type="application/json" id="collection-data">{{ collections | tojson }}</script>
 <script type="application/json" id="tag-data">{{ available_tags | default([], true) | tojson }}</script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
     const collectionDataEl = document.getElementById('collection-data');
     const tagDataEl = document.getElementById('tag-data');
-    const collectionOptions = collectionDataEl ? JSON.parse(collectionDataEl.textContent) : [];
+    const rawCollectionOptions = collectionDataEl ? JSON.parse(collectionDataEl.textContent) : [];
+    const collectionOptions = Array.isArray(rawCollectionOptions)
+        ? rawCollectionOptions
+            .map((item) => {
+                if (!item) {
+                    return null;
+                }
+                if (typeof item === 'string') {
+                    return { name: item };
+                }
+                if (typeof item.name === 'string') {
+                    return { id: item.id, name: item.name, slug: item.slug };
+                }
+                return null;
+            })
+            .filter((item) => item && item.name && item.name.trim().length > 0)
+        : [];
+    
     const rawTagOptions = tagDataEl ? JSON.parse(tagDataEl.textContent) : [];
     const tagOptions = Array.isArray(rawTagOptions)
         ? rawTagOptions
@@ -281,39 +299,103 @@
         const collectionSuggestions = document.querySelector('[data-collection-suggestions]');
 
         if (collectionInput && collectionSuggestions) {
+            let collectionHighlightedIndex = -1;
+
             const renderCollectionSuggestions = (matches) => {
                 collectionSuggestions.innerHTML = '';
                 if (!matches.length) {
                     collectionSuggestions.classList.add('hidden');
                     return;
                 }
-                matches.forEach((name) => {
+                matches.forEach((collection, index) => {
                     const item = document.createElement('button');
                     item.type = 'button';
-                    item.className = 'w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 transition';
-                    item.textContent = name;
+                    item.className = 'w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition flex items-center gap-2';
+                    item.dataset.collectionSuggestion = 'true';
+                    
+                    // Add folder icon
+                    const iconWrapper = document.createElement('span');
+                    iconWrapper.className = 'flex-shrink-0 text-blue-500';
+                    iconWrapper.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>';
+                    item.appendChild(iconWrapper);
+                    
+                    const label = document.createElement('span');
+                    label.className = 'flex-1';
+                    label.textContent = collection.name;
+                    item.appendChild(label);
+                    
+                    item.addEventListener('mouseenter', () => {
+                        collectionHighlightedIndex = index;
+                        highlightCollectionSuggestion(index);
+                    });
                     item.addEventListener('click', () => {
-                        collectionInput.value = name;
+                        collectionInput.value = collection.name;
                         collectionSuggestions.classList.add('hidden');
+                        collectionInput.focus();
                     });
                     collectionSuggestions.appendChild(item);
                 });
                 collectionSuggestions.classList.remove('hidden');
             };
 
+            const highlightCollectionSuggestion = (index) => {
+                const items = collectionSuggestions.querySelectorAll('[data-collection-suggestion]');
+                items.forEach((item, idx) => {
+                    if (idx === index) {
+                        item.classList.add('bg-primary-50', 'text-primary-700');
+                    } else {
+                        item.classList.remove('bg-primary-50', 'text-primary-700');
+                    }
+                });
+            };
+
             collectionInput.addEventListener('input', (event) => {
                 const query = event.target.value.trim().toLowerCase();
                 if (!query) {
-                    collectionSuggestions.classList.add('hidden');
+                    // Show all collections when input is empty but focused
+                    renderCollectionSuggestions(collectionOptions.slice(0, 8));
                     return;
                 }
-                const matches = collectionOptions.filter((name) => name.toLowerCase().includes(query)).slice(0, 8);
+                const matches = collectionOptions.filter((col) => col.name.toLowerCase().includes(query)).slice(0, 8);
                 renderCollectionSuggestions(matches);
+            });
+
+            collectionInput.addEventListener('focus', () => {
+                const query = collectionInput.value.trim().toLowerCase();
+                if (!query) {
+                    // Show all collections when focused with empty input
+                    renderCollectionSuggestions(collectionOptions.slice(0, 8));
+                } else {
+                    const matches = collectionOptions.filter((col) => col.name.toLowerCase().includes(query)).slice(0, 8);
+                    renderCollectionSuggestions(matches);
+                }
+            });
+
+            collectionInput.addEventListener('keydown', (event) => {
+                const items = collectionSuggestions.querySelectorAll('[data-collection-suggestion]');
+                if (!items.length) return;
+
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    collectionHighlightedIndex = (collectionHighlightedIndex + 1) % items.length;
+                    highlightCollectionSuggestion(collectionHighlightedIndex);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    collectionHighlightedIndex = collectionHighlightedIndex <= 0 ? items.length - 1 : collectionHighlightedIndex - 1;
+                    highlightCollectionSuggestion(collectionHighlightedIndex);
+                } else if (event.key === 'Enter' && collectionHighlightedIndex >= 0 && collectionHighlightedIndex < items.length) {
+                    event.preventDefault();
+                    items[collectionHighlightedIndex].click();
+                } else if (event.key === 'Escape') {
+                    collectionSuggestions.classList.add('hidden');
+                    collectionHighlightedIndex = -1;
+                }
             });
 
             document.addEventListener('click', (event) => {
                 if (!collectionSuggestions.contains(event.target) && !collectionInput.contains(event.target)) {
                     collectionSuggestions.classList.add('hidden');
+                    collectionHighlightedIndex = -1;
                 }
             });
         }
