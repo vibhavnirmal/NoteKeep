@@ -26,6 +26,18 @@
             </a>
         </div>
 
+        <!-- Preview Image -->
+        {% if link.image_url %}
+        <div class="p-3 border-b border-gray-200">
+            <div class="rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                <img src="{{ link.image_url }}" 
+                     alt="{{ link.title or 'Link preview' }}"
+                     class="w-full h-auto max-h-96 object-contain"
+                     onerror="this.parentElement.style.display='none'">
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Details -->
         <div class="p-3 space-y-3">
             <!-- Collection -->
@@ -212,7 +224,7 @@
     </div>
 </div>
 
-<script type="application/json" id="collection-data">{{ collections | tojson }}</script>
+<script type="application/json" id="collection-data">{{ collections | map(attribute='name') | list | tojson }}</script>
 <script type="application/json" id="tag-data">{{ available_tags | default([], true) | tojson }}</script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>

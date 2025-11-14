@@ -4,7 +4,7 @@
 <div class="mb-4 sm:mb-6">    
     <!-- Quick Tag Filters with Icons -->
     <div class="flex items-center gap-2 sm:gap-3 mt-3 overflow-x-auto scrollbar-hide pb-2">
-        {% if filter_tag %}
+        {% if filter_tag or filter_collection or filter_tags or filter_collections %}
         <a href="/links" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all shadow-sm" title="Clear tag filter">
             <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
             <span class="text-sm text-gray-700">Clear</span>
@@ -54,9 +54,15 @@
         {% if filter_tag %}
         <input type="hidden" name="tag" value="{{ filter_tag }}" />
         {% endif %}
+        {% for tag_slug in filter_tags %}
+        <input type="hidden" name="tags" value="{{ tag_slug }}" />
+        {% endfor %}
         {% if filter_collection %}
         <input type="hidden" name="collection" value="{{ filter_collection }}" />
         {% endif %}
+        {% for collection_slug in filter_collections %}
+        <input type="hidden" name="collections" value="{{ collection_slug }}" />
+        {% endfor %}
         {% if has_notes %}
         <input type="hidden" name="has_notes" value="true" />
         {% endif %}
@@ -94,8 +100,41 @@
         </div>
     </form>
 
+    <!-- Active Filters Display -->
+    {% if filter_tags or filter_collections %}
+    <div class="mt-3 flex flex-wrap gap-2 items-center">
+        <span class="text-sm font-medium text-gray-600">Active filters:</span>
+        {% for tag_slug in filter_tags %}
+        {% set tag_obj = tags | selectattr('slug', 'equalto', tag_slug) | first %}
+        {% if tag_obj %}
+        <a href="/links?{% for t in filter_tags %}{% if t != tag_slug %}tags={{ t }}&{% endif %}{% endfor %}{% for c in filter_collections %}collections={{ c }}&{% endfor %}" 
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 text-sm font-medium hover:bg-indigo-200 transition-all group">
+            {% if tag_obj.icon %}
+            <i data-lucide="{{ tag_obj.icon }}" class="w-4 h-4"></i>
+            {% else %}
+            <i data-lucide="tag" class="w-4 h-4"></i>
+            {% endif %}
+            <span>{{ tag_obj.name }}</span>
+            <i data-lucide="x" class="w-3.5 h-3.5 group-hover:text-indigo-900"></i>
+        </a>
+        {% endif %}
+        {% endfor %}
+        {% for collection_slug in filter_collections %}
+        {% set collection_obj = collections | selectattr('slug', 'equalto', collection_slug) | first %}
+        {% if collection_obj %}
+        <a href="/links?{% for t in filter_tags %}tags={{ t }}&{% endfor %}{% for c in filter_collections %}{% if c != collection_slug %}collections={{ c }}&{% endif %}{% endfor %}" 
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-all group">
+            <i data-lucide="folder" class="w-4 h-4"></i>
+            <span>{{ collection_obj.name }}</span>
+            <i data-lucide="x" class="w-3.5 h-3.5 group-hover:text-blue-900"></i>
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% if collection_summaries %}
-    <section class="mt-6 space-y-2" aria-labelledby="collections-heading">
+    <section class="mt-3 space-y-2" aria-labelledby="collections-heading">
         <div class="flex flex-row gap-2 justify-between">
             <span>&nbsp;</span>
             <button type="button" data-open-collection-browser class="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700">
@@ -119,37 +158,31 @@
                         <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
                     </div>
                 </div>
-                {% if filter_collection %}
-                <a href="/links" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white shadow-sm hover:bg-gray-50">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                    Clear
-                </a>
-                {% endif %}
             </div>
         </div>
 
         {% if top_collection_summaries %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {% for collection, count in top_collection_summaries %}
-            <a href="/links?collection={{ collection.slug }}"
-                class="group relative overflow-hidden rounded-xl border {{ 'border-primary-300 bg-primary-50' if filter_collection == collection.slug else 'border-gray-200 bg-white hover:border-primary-300 hover:shadow-sm' }} transition-all">
-                <div class="p-4 flex items-start justify-between gap-3">
-                    <div class="flex items-start gap-3">
-                        <div class="rounded-lg p-2 {{ 'bg-primary-600 text-white' if filter_collection == collection.slug else 'bg-primary-100 text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors' }}">
-                            <i data-lucide="folder" class="w-5 h-5"></i>
+        <div class="">
+            <div class="text-sm font-medium text-gray-700 mb-2 items-center flex">
+                <i data-lucide="folder" class="w-5 h-5 text-gray-500 inline-block mr-2"></i>
+                Frequently Used Collections
+            </div>
+            <div class="grid grid-cols-3 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {% for collection, count in top_collection_summaries %}
+                <a href="/links?collection={{ collection.slug }}"
+                    class="group relative overflow-hidden rounded-xl border {{ 'border-primary-300 bg-primary-50' if filter_collection == collection.slug else 'border-gray-200 bg-white hover:border-primary-300 hover:shadow-sm' }} transition-all">
+                    <div class="p-4 flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">{{ collection.name }}</h3>
+                                <p class="text-xs text-gray-500">{{ count }} link{{ '' if count == 1 else 's' }}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">{{ collection.name }}</h3>
-                            <p class="text-xs text-gray-500">{{ count }} link{{ '' if count == 1 else 's' }}</p>
-                        </div>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors"></i>
                     </div>
-                    <i data-lucide="arrow-up-right" class="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors"></i>
-                </div>
-                <div class="px-4 pb-4">
-                    <p class="text-xs text-gray-500">Frequently used collection.</p>
-                </div>
-            </a>
-            {% endfor %}
+                </a>
+                {% endfor %}
+            </div>
         </div>
         {% endif %}
     </section>
@@ -157,12 +190,10 @@
 </div>
 
 <!-- Mobile Clear Filters Button (shown when filters are active) -->
-{% if search or filter_tag or filter_collection or has_notes or is_unread or date_from or date_to %}
+{% if search or filter_tag or filter_collection or filter_tags or filter_collections or has_notes or is_unread or date_from or date_to %}
 <div class="mb-4 lg:hidden">
     <a href="/links" class="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-300">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
+        <i data-lucide="x-circle" class="w-4 h-4"></i>
         Clear All Filters
     </a>
 </div>
@@ -181,17 +212,13 @@
         {% if not links %}
         <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center">
             <div class="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary-100 mb-3 sm:mb-4">
-                <svg class="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+                <i data-lucide="link-2-off" class="w-6 h-6 sm:w-8 sm:h-8 text-primary-600"></i>
             </div>
             <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-2">No links found</h3>
             <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">No links match your current filters. Try adjusting your search criteria.</p>
             {% if total %}
             <a href="/links" class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-all shadow-md hover:shadow-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
                 Clear All Filters
             </a>
             {% endif %}
@@ -199,76 +226,82 @@
         {% else %}
         <!-- Grouped Links by Date -->
         {% for group_name, group_links in grouped_links %}
-        <div class="mb-6 sm:mb-8">
-            <!-- Date Header -->
-            <div class="flex items-center gap-3 mb-3 sm:mb-4 sticky top-0 lg:top-4 bg-gradient-to-br from-gray-50 to-gray-100 z-10 py-2 px-3 sm:px-4 rounded-lg border border-gray-200 shadow-sm">
-                <div class="flex items-center gap-2">
+        <div class="mb-5">
+            <!-- Date Header - More Compact -->
+            <div class="flex items-center gap-2 mb-2 sticky top-0 lg:top-4 bg-white/95 backdrop-blur-sm py-1.5 px-2 rounded-lg border border-gray-200 shadow-sm z-10">
+                <div class="flex items-center gap-1.5">
                     {% if group_name == 'Today' %}
-                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+                    <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                        <i data-lucide="clock" class="w-3 h-3 text-green-600"></i>
                     </div>
                     {% elif group_name == 'Yesterday' %}
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+                    <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i data-lucide="clock" class="w-3 h-3 text-blue-600"></i>
                     </div>
                     {% else %}
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
+                    <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <i data-lucide="calendar" class="w-3 h-3 text-indigo-600"></i>
                     </div>
                     {% endif %}
-                    <h2 class="text-sm sm:text-lg font-bold text-gray-900">{{ group_name }}</h2>
+                    <h2 class="text-xs sm:text-sm font-bold text-gray-900">{{ group_name }}</h2>
                 </div>
-                <div class="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
-                <span class="text-xs sm:text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded-full border border-gray-200">{{ group_links | length }}</span>
+                <div class="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent"></div>
+                <span class="text-xs text-gray-500 font-medium px-1.5">{{ group_links | length }}</span>
             </div>
             
             <!-- Links in this group -->
             <div class="space-y-2">
             {% for link in group_links %}
-            <article class="bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all">
-                <a href="/links/{{ link.id }}" class="block p-4 group">
-                    <div class="flex flex-col md:flex-row gap-4 md:items-center">
-                        <!-- Title - Fixed width column -->
-                        <div class="flex-1 min-w-0" style="flex: 0 0 60%;">
-                            <h3 class="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+            <article class="bg-white border border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-md transition-all group">
+                <a href="/links/{{ link.id }}" class="block p-3">
+                    <div class="flex items-center gap-3">
+                        <!-- Thumbnail Image -->
+                        {% if link.image_url %}
+                        <div class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                            <img src="{{ link.image_url }}" 
+                                 alt="{{ link.title or 'Link preview' }}"
+                                 class="w-full h-full object-cover"
+                                 onerror="this.parentElement.style.display='none'">
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Title Section -->
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold text-sm text-gray-900 group-hover:text-primary-600 transition-colors truncate mb-1">
                                 {{ link.title or link.url }}
                             </h3>
-                        </div>
-                        
-                        <!-- Tags - Fixed width column -->
-                        <div class="flex-1" style="flex: 0 0 30%;">
-                            {% if link.tags %}
-                            <div class="flex flex-wrap gap-1.5">
-                                {% for tag in link.tags %}
-                                <span data-tag-filter="{{ tag.slug }}" role="link" tabindex="0"
-                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500 {% if tag.icon %}shadow-sm{% else %}bg-indigo-50 text-indigo-700{% endif %}"
-                                    style="{% if tag.icon %}background-color: {{ tag.color or '#6b7280' }}; color: #ffffff;{% endif %}">
-                                    {% if tag.icon %}
-                                    <i data-lucide="{{ tag.icon }}" class="w-6 h-6"></i>
-                                    {% endif %}
-                                    {{ tag.name }}
+                            <div class="flex items-center gap-2 text-xs text-gray-500">
+                                <!-- Collection -->
+                                {% if link.collection %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-medium">
+                                    <i data-lucide="folder" class="w-3 h-3"></i>
+                                    <span class="hidden sm:inline">{{ link.collection.name }}</span>
                                 </span>
-                                {% endfor %}
+                                {% endif %}
+                                <!-- Date -->
+                                <span class="inline-flex items-center gap-1 text-gray-500">
+                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                    {{ link.created_at | relative_time }}
+                                </span>
                             </div>
-                            {% endif %}
                         </div>
                         
-                        <!-- Date - Fixed width column -->
-                        <div class="flex-shrink-0" style="flex: 0 0 auto; min-width: 120px;">
-                            <p class="text-xs text-gray-500 flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                {{ link.created_at | relative_time }}
-                            </p>
+                        <!-- Tags - Icons Only -->
+                        {% if link.tags %}
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            {% for tag in link.tags %}
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-md transition-all {% if tag.icon %}shadow-sm{% else %}bg-indigo-100 text-indigo-700{% endif %}"
+                                style="{% if tag.icon %}background-color: {{ tag.color or '#6b7280' }}; color: #ffffff;{% endif %}"
+                                title="{{ tag.name }}">
+                                {% if tag.icon %}
+                                <i data-lucide="{{ tag.icon }}" class="w-4 h-4"></i>
+                                {% else %}
+                                <i data-lucide="tag" class="w-4 h-4"></i>
+                                {% endif %}
+                            </span>
+                            {% endfor %}
                         </div>
-                        
+                        {% endif %}
                     </div>
                 </a>
             </article>
@@ -322,9 +355,7 @@
                 <div class="flex items-center justify-between p-4 border-b border-gray-200">
                     <h2 class="text-base sm:text-lg font-bold text-gray-900">Filters & Searches</h2>
                     <button type="button" class="p-2 hover:bg-gray-100 rounded-lg transition-all" data-close-filters>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
+                        <i data-lucide="x" class="w-5 h-5 text-gray-700"></i>
                     </button>
                 </div>
                 <div class="px-4 pb-4 space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto">
@@ -340,30 +371,44 @@
                             <div>
                                 <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                                     <i data-lucide="tag" class="w-4 h-4 text-gray-500"></i>
-                                    Tag
+                                    Tags (select up to 2)
                                 </label>
-                                <select name="tag"
-                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
-                                    <option value="">All Tags</option>
+                                <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                                     {% for tag in tags %}
-                                    <option value="{{ tag.slug }}" {% if filter_tag==tag.slug %}selected{% endif %}>/{{ tag.name }}
-                                    </option>
+                                    <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                                        <input type="checkbox" name="tags" value="{{ tag.slug }}" 
+                                            {% if tag.slug in filter_tags %}checked{% endif %}
+                                            class="tag-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                                        <span class="text-sm text-gray-700 flex items-center gap-1.5">
+                                            {% if tag.icon %}
+                                            <i data-lucide="{{ tag.icon }}" class="w-4 h-4" style="color: {{ tag.color or '#6b7280' }};"></i>
+                                            {% endif %}
+                                            {{ tag.name }}
+                                        </span>
+                                    </label>
                                     {% endfor %}
-                                </select>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Select multiple tags to filter links</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                                     <i data-lucide="folder" class="w-4 h-4 text-gray-500"></i>
-                                    Collection
+                                    Collections (select up to 2)
                                 </label>
-                                <select name="collection"
-                                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
-                                    <option value="">All Collections</option>
+                                <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                                     {% for collection in collections %}
-                                    <option value="{{ collection.slug }}" {% if filter_collection==collection.slug %}selected{%
-                                        endif %}>{{ collection.name }}</option>
+                                    <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                                        <input type="checkbox" name="collections" value="{{ collection.slug }}" 
+                                            {% if collection.slug in filter_collections %}checked{% endif %}
+                                            class="collection-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                                        <span class="text-sm text-gray-700 flex items-center gap-1.5">
+                                            <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i>
+                                            {{ collection.name }}
+                                        </span>
+                                    </label>
                                     {% endfor %}
-                                </select>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Select multiple collections to filter links</p>
                             </div>
                             
                             <!-- Advanced Filters Collapsible Section -->
@@ -400,16 +445,12 @@
                             <div class="flex gap-2 pt-2">
                                 <button type="submit" id="apply-btn"
                                     class="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md hover:shadow-lg disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:shadow-none flex items-center justify-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
+                                    <i data-lucide="check" class="w-4 h-4"></i>
                                     Apply
                                 </button>
                                 <a href="/links" id="clear-btn"
                                     class="flex-1 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm text-center flex items-center justify-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
+                                    <i data-lucide="x" class="w-4 h-4"></i>
                                     Clear
                                 </a>
                             </div>
@@ -424,72 +465,61 @@
             <!-- Copy of filter content for desktop -->
             <!-- Advanced Filters -->
             <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
-                <h2 class="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
+                <h2 class="float-right text-base sm:text-lg font-bold text-gray-600 mb-4 flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-gray-600"></i>
                     Filters
                 </h2>
                 <form method="get" id="filter-form-desktop" class="space-y-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            Search
+                            <i data-lucide="tag" class="w-4 h-4 text-gray-500"></i>
+                            Tags (select up to 2)
                         </label>
-                        <input type="search" name="search" value="{{ search or '' }}" placeholder="Title, URL, or notes"
-                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                            </svg>
-                            Tag
-                        </label>
-                        <select name="tag"
-                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
-                            <option value="">All Tags</option>
+                        <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                             {% for tag in tags %}
-                            <option value="{{ tag.slug }}" {% if filter_tag==tag.slug %}selected{% endif %}>/{{ tag.name }}
-                            </option>
+                            <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                                <input type="checkbox" name="tags" value="{{ tag.slug }}" 
+                                    {% if tag.slug in filter_tags %}checked{% endif %}
+                                    class="tag-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                                <span class="text-sm text-gray-700 flex items-center gap-1.5">
+                                    {% if tag.icon %}
+                                    <i data-lucide="{{ tag.icon }}" class="w-4 h-4" style="color: {{ tag.color or '#6b7280' }};"></i>
+                                    {% endif %}
+                                    {{ tag.name }}
+                                </span>
+                            </label>
                             {% endfor %}
-                        </select>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Select multiple tags to filter links</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            Collection
+                            <i data-lucide="folder" class="w-4 h-4 text-gray-500"></i>
+                            Collections (select up to 2)
                         </label>
-                        <select name="collection"
-                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm bg-white">
-                            <option value="">All Collections</option>
+                        <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                             {% for collection in collections %}
-                            <option value="{{ collection.slug }}" {% if filter_collection==collection.slug %}selected{%
-                                endif %}>{{ collection.name }}</option>
+                            <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
+                                <input type="checkbox" name="collections" value="{{ collection.slug }}" 
+                                    {% if collection.slug in filter_collections %}checked{% endif %}
+                                    class="collection-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                                <span class="text-sm text-gray-700 flex items-center gap-1.5">
+                                    <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i>
+                                    {{ collection.name }}
+                                </span>
+                            </label>
                             {% endfor %}
-                        </select>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Select multiple collections to filter links</p>
                     </div>
                     
                     <!-- Advanced Filters Collapsible Section -->
-                    <div class="border-t border-gray-200 pt-4">
-                        <button type="button" onclick="toggleAdvancedFilters()" class="flex items-center justify-between w-full text-sm font-semibold text-gray-900 hover:text-primary-600 transition-colors">
-                            <span class="flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-                                </svg>
-                                Advanced Filters
-                            </span>
-                            <svg id="advanced-chevron-desktop" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        <div id="advanced-filters-desktop" class="hidden mt-4 space-y-4">
+                    <div class="">
+                        <div id="advanced-filters-desktop" class="mt-4 space-y-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-900 mb-2">Date Range</label>
+                                <label class="block text-sm font-semibold text-gray-900 mb-2">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-gray-500 inline-block mr-1"></i>
+                                    Date Range</label>
                                 <div class="space-y-2">
                                     <input type="date" name="date_from" value="{{ date_from or '' }}" placeholder="From"
                                         class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm" />
@@ -502,13 +532,6 @@
                                     <input type="checkbox" name="has_notes" value="true" {% if has_notes %}checked{% endif %}
                                         class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
                                     <span class="text-sm font-medium text-gray-700">Has Notes</span>
-                                </label>
-                            </div>
-                            <div>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="is_unread" value="true" {% if is_unread %}checked{% endif %}
-                                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
-                                    <span class="text-sm font-medium text-gray-700">Unread Only</span>
                                 </label>
                             </div>
                         </div>
@@ -662,30 +685,41 @@
                 }
             });
         }
+    });
 
-        const tagFilterElements = document.querySelectorAll('[data-tag-filter]');
-        tagFilterElements.forEach((element) => {
-            const slug = element.getAttribute('data-tag-filter');
-            if (!slug) return;
+    // Limit checkbox selections to 2 for tags and collections
+    document.addEventListener('DOMContentLoaded', () => {
+        const MAX_SELECTIONS = 2;
 
-            const navigateToTag = () => {
-                window.location.href = `/links?tag=${encodeURIComponent(slug)}`;
-            };
+        // Handle tag checkboxes (mobile)
+        const tagCheckboxes = document.querySelectorAll('.tag-checkbox');
+        const tagCheckboxesDesktop = document.querySelectorAll('.tag-checkbox-desktop');
+        
+        // Handle collection checkboxes (mobile)
+        const collectionCheckboxes = document.querySelectorAll('.collection-checkbox');
+        const collectionCheckboxesDesktop = document.querySelectorAll('.collection-checkbox-desktop');
 
-            element.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                navigateToTag();
+        function limitCheckboxes(checkboxes, maxSelections) {
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+                    if (checked.length > maxSelections) {
+                        checkbox.checked = false;
+                        // Show a brief visual feedback
+                        const label = checkbox.closest('label');
+                        if (label) {
+                            label.classList.add('bg-red-50');
+                            setTimeout(() => label.classList.remove('bg-red-50'), 300);
+                        }
+                    }
+                });
             });
+        }
 
-            element.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    navigateToTag();
-                }
-            });
-        });
+        limitCheckboxes(tagCheckboxes, MAX_SELECTIONS);
+        limitCheckboxes(tagCheckboxesDesktop, MAX_SELECTIONS);
+        limitCheckboxes(collectionCheckboxes, MAX_SELECTIONS);
+        limitCheckboxes(collectionCheckboxesDesktop, MAX_SELECTIONS);
     });
 
     // Show notes modal

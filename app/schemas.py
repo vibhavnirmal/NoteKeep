@@ -25,6 +25,7 @@ class LinkBase(BaseModel):
     url: HttpUrl
     title: str | None = Field(None, max_length=500)
     notes: str | None = Field(None, max_length=10000)
+    image_url: str | None = None
 
 
 class LinkCreate(LinkBase):
@@ -93,6 +94,7 @@ class LinkUpdate(BaseModel):
     notes: str | None = None
     tags: list[str] | None = None
     collection: str | None = None
+    image_url: str | None = None
 
 
 class LinkRead(BaseModel):
@@ -102,6 +104,7 @@ class LinkRead(BaseModel):
     url: str
     title: str | None
     notes: str | None
+    image_url: str | None
     created_at: datetime
     updated_at: datetime
     tags: list[TagRead]

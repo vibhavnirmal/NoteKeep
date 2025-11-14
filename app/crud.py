@@ -239,10 +239,24 @@ def get_link_by_url(session: Session, url: str) -> Link | None:
 def create_link(session: Session, payload: LinkCreate) -> Link:
     collection = get_or_create_collection(session, payload.collection)
     tags = get_or_create_tags(session, payload.tags)
+    
+    # Fetch metadata including image if not provided
+    image_url = payload.image_url
+    if not image_url:
+        from .link_preview import fetch_link_metadata
+        try:
+            metadata = fetch_link_metadata(str(payload.url), timeout=5)
+            if metadata and metadata.get("image"):
+                image_url = metadata["image"]
+        except Exception:
+            # If fetching fails, continue without image
+            pass
+    
     link = Link(
         url=str(payload.url),
         title=payload.title,
         notes=payload.notes,
+        image_url=image_url,
         collection=collection,
         tags=tags,
     )
@@ -265,6 +279,8 @@ def update_link(session: Session, link: Link, payload: LinkUpdate) -> Link:
         link.title = payload.title
     if payload.notes is not None:
         link.notes = payload.notes
+    if payload.image_url is not None:
+        link.image_url = payload.image_url
     if payload.collection is not None:
         link.collection = get_or_create_collection(session, payload.collection)
     if payload.tags is not None:
@@ -285,7 +301,9 @@ def list_links(
     *,
     search: str | None = None,
     tag: str | None = None,
+    tags: list[str] | None = None,
     collection: str | None = None,
+    collections: list[str] | None = None,
     has_notes: bool | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -322,17 +340,35 @@ def list_links(
 
             filters.append(search_expression)
 
+    # Support both single tag and multiple tags for backward compatibility
     if tag:
         lowered_tag = tag.lower()
         query = query.join(Link.tags)
         count_query = count_query.join(Link.tags)
         filters.append(func.lower(Tag.slug) == lowered_tag)
+    elif tags and len(tags) > 0:
+        # Filter links that have ALL selected tags (AND logic)
+        query = query.join(Link.tags)
+        count_query = count_query.join(Link.tags)
+        lowered_tags = [t.lower() for t in tags]
+        filters.append(func.lower(Tag.slug).in_(lowered_tags))
+        # Group by link ID and ensure it has all selected tags
+        query = query.group_by(Link.id).having(
+            func.count(func.distinct(Tag.id)) >= len(lowered_tags)
+        )
 
+    # Support both single collection and multiple collections for backward compatibility
     if collection:
         lowered_collection = collection.lower()
         query = query.join(Link.collection)
         count_query = count_query.join(Link.collection)
         filters.append(func.lower(Collection.slug) == lowered_collection)
+    elif collections and len(collections) > 0:
+        # Filter links that belong to any of the selected collections (OR logic)
+        query = query.join(Link.collection)
+        count_query = count_query.join(Link.collection)
+        lowered_collections = [c.lower() for c in collections]
+        filters.append(func.lower(Collection.slug).in_(lowered_collections))
 
     # Advanced filters
     if has_notes is not None:

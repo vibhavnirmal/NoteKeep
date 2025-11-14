@@ -1,9 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Quick Add · NoteKeep{% endblock %}
 {% block content %}
-<div class="mb-4 sm:mb-6">
-  <h1 class="text-lg sm:text-2xl font-semibold text-gray-900 mb-1">Quick Add</h1>
+<!-- Back button -->
+<div class="m-3">
+    <a href="/links" class="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors text-sm">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Back to Links
+    </a>
 </div>
+
+<!-- <div class="mb-4 sm:mb-6">
+  <h1 class="text-lg sm:text-2xl font-semibold text-gray-900 mb-1">Quick Add</h1>
+</div> -->
 
 <!-- Tab Navigation -->
 <div class="border-b border-gray-200 mb-4 sm:mb-6">
@@ -32,27 +40,6 @@
         <div id="link-preview" class="hidden mb-4"></div>
         <form id="add-form" class="space-y-3">
             <input type="hidden" name="title" value="{{ prefill.title }}" />
-      {% if recommended_tags %}
-      <div class="space-y-2" data-recommended-tags>
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] sm:text-xs font-semibold text-gray-700 uppercase tracking-wide">Recommended tags</p>
-          <span class="text-[10px] sm:text-xs text-gray-500">Select up to 4</span>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          {% for tag in recommended_tags %}
-          <button type="button"
-            class="recommended-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 hover:border-primary-300 hover:text-primary-600 transition"
-            data-tag-value="{{ tag.slug }}" aria-pressed="false">
-            {% if tag.icon %}
-            <i data-lucide="{{ tag.icon }}" class="w-4 h-4"></i>
-            {% endif %}
-            <span>{{ tag.name }}</span>
-          </button>
-          {% endfor %}
-        </div>
-        <input type="hidden" name="selected_tags" id="selected-tags" value="">
-      </div>
-      {% endif %}
             <div>
                 <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">URL</label>
                 <input type="url" name="url" required value="{{ prefill.url }}"

@@ -178,7 +178,9 @@ def list_links_view(
     request: Request,
     search: str | None = Query(None),
     tag: str | None = Query(None),
+    tags: list[str] | None = Query(None),
     collection: str | None = Query(None),
+    collections: list[str] | None = Query(None),
     has_notes: bool | None = Query(None),
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
@@ -192,22 +194,24 @@ def list_links_view(
             session,
             search=search,
             tag=tag,
+            tags=tags,
             collection=collection,
+            collections=collections,
             has_notes=has_notes,
             date_from=date_from,
             date_to=date_to,
             page=page,
             page_size=page_size,
         )
-        tags = list_tags(session)
-        collections = list_collections(session)
+        tags_list = list_tags(session)
+        collections_list = list_collections(session)
         collection_summaries = list_collections_with_counts(session)
         top_collection_summaries = sorted(
             collection_summaries,
             key=lambda item: item[1],
             reverse=True,
         )[:6]
-        
+
         # Group links by date
         grouped_links = group_links_by_date(links)
     finally:
@@ -221,13 +225,15 @@ def list_links_view(
             "total": total,
             "page": page,
             "page_size": page_size,
-            "tags": tags,
-            "collections": collections,
+            "tags": tags_list,
+            "collections": collections_list,
             "collection_summaries": collection_summaries,
             "top_collection_summaries": top_collection_summaries,
             "search": search,
             "filter_tag": tag,
+            "filter_tags": tags or [],
             "filter_collection": collection,
+            "filter_collections": collections or [],
             "has_notes": has_notes,
             "date_from": date_from,
             "date_to": date_to,

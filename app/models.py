@@ -65,6 +65,7 @@ class Link(Base, TimestampMixin):
     url: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str | None] = mapped_column(String(255))
     notes: Mapped[str | None] = mapped_column(Text)
+    image_url: Mapped[str | None] = mapped_column(Text)  # Preview image URL from og:image
 
     collection_id: Mapped[int | None] = mapped_column(ForeignKey("collections.id"))
     collection: Mapped[Collection | None] = relationship("Collection", back_populates="links")
