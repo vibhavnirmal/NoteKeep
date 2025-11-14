@@ -280,8 +280,12 @@ def delete_link_view(request: Request, link_id: int):
         session.commit()
     finally:
         session.close()
-    referer = request.headers.get("referer") or "/links"
-    return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
+    referer = request.headers.get("referer") or ""
+    if f"/links/{link_id}" in referer:
+        redirect_url = "/links?deleted=1"
+    else:
+        redirect_url = referer or "/links"
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/add")
