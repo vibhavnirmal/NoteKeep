@@ -3,7 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -14,11 +22,10 @@ from ..crud import (
     delete_collection,
     delete_link,
     delete_tag,
-    get_default_tags,
     get_collection,
+    get_default_tags,
     get_link,
     get_tag,
-    get_top_tags,
     list_collections,
     list_collections_with_counts,
     list_links,
@@ -74,21 +81,21 @@ def relative_time(dt: datetime) -> str:
 
 def group_links_by_date(links):
     """Group links by date categories: Today, Yesterday, This Week, etc."""
-    from datetime import timedelta
     from collections import defaultdict
-    
+    from datetime import timedelta
+
     now = datetime.now()
     today = now.date()
     yesterday = today - timedelta(days=1)
     week_start = today - timedelta(days=today.weekday())  # Monday
     last_week_start = week_start - timedelta(days=7)
     month_start = today.replace(day=1)
-    
+
     groups = defaultdict(list)
-    
+
     for link in links:
         link_date = link.created_at.date()
-        
+
         if link_date == today:
             groups['Today'].append(link)
         elif link_date == yesterday:
@@ -103,22 +110,23 @@ def group_links_by_date(links):
             # Group by month and year for older links
             month_year = link_date.strftime('%B %Y')
             groups[month_year].append(link)
-    
+
     # Return in order
     ordered_groups = []
     for key in ['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month']:
         if key in groups:
             ordered_groups.append((key, groups[key]))
-    
+
     # Add older months in reverse chronological order
+    excluded = ['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month']
     other_keys = sorted(
-        [k for k in groups.keys() if k not in ['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month']], 
-        key=lambda x: datetime.strptime(x, '%B %Y'), 
+        [k for k in groups.keys() if k not in excluded],
+        key=lambda x: datetime.strptime(x, '%B %Y'),
         reverse=True
     )
     for key in other_keys:
         ordered_groups.append((key, groups[key]))
-    
+
     return ordered_groups
 
 
@@ -331,9 +339,8 @@ def add_page(
 @router.post("/bulk-import")
 def bulk_import_links(request: Request, urls: str = Form(...)):
     """Import multiple links from a textarea input"""
-    from ..routers.api import extract_domain_name
-    from ..schemas import LinkCreate
     from ..crud import create_link, get_link_by_url
+    from ..schemas import LinkCreate
     
     lines = urls.strip().split('\n')
     imported_count = 0
@@ -373,13 +380,9 @@ def bulk_import_links(request: Request, urls: str = Form(...)):
                 continue
             
             try:
-                # Auto-tag with domain name
-                tags = [extract_domain_name(url)]
-                
                 link_data = LinkCreate(
                     url=url,
                     title=title or url,
-                    tags=tags,
                 )
                 create_link(session, link_data)
                 imported_count += 1
@@ -401,7 +404,7 @@ def bulk_import_links(request: Request, urls: str = Form(...)):
                 status_code=status.HTTP_303_SEE_OTHER
             )
         else:
-            error_msg = f"No links were imported."
+            error_msg = "No links were imported."
             if duplicate_count > 0:
                 error_msg += f" {duplicate_count} duplicate(s) skipped."
             if skipped_count > 0:
@@ -427,9 +430,9 @@ async def bulk_import_csv(request: Request, file: UploadFile):
     """Import multiple links from a CSV file"""
     import csv
     import io
-    from ..routers.api import extract_domain_name
-    from ..schemas import LinkCreate
+
     from ..crud import create_link
+    from ..schemas import LinkCreate
     
     imported_count = 0
     skipped_count = 0
@@ -467,13 +470,9 @@ async def bulk_import_csv(request: Request, file: UploadFile):
                 
                 # Handle tags - CSV can have comma-separated tags or single tag
                 tags_str = row.get('tags', '').strip()
-                if tags_str:
-                    # Split by comma if multiple tags
-                    tags = [t.strip() for t in tags_str.split(',') if t.strip()]
-                else:
-                    # Auto-tag with domain name if no tags provided
-                    tags = [extract_domain_name(url)]
-                
+                # Split by comma when tags are provided, otherwise leave empty
+                tags = [t.strip() for t in tags_str.split(',') if t.strip()] if tags_str else []
+
                 link_data = LinkCreate(
                     url=url,
                     title=title,
@@ -521,16 +520,28 @@ def settings_page(
     success: str | None = Query(None),
     error: str | None = Query(None),
 ):
-    from app.icons import ICON_LIBRARY, COLOR_OPTIONS
-    
+    from ..icons import COLOR_OPTIONS, ICON_LIBRARY
+
     session = _get_session()
     try:
         tags_with_counts = list_tags_with_counts(session)
         collections_with_counts = list_collections_with_counts(session)
-        
+
         # Convert to list of dicts with link_count, icon, and color attributes
-        tags = [{"id": tag.id, "name": tag.name, "icon": tag.icon, "color": tag.color, "link_count": count} for tag, count in tags_with_counts]
-        collections = [{"id": coll.id, "name": coll.name, "link_count": count} for coll, count in collections_with_counts]
+        tags = [
+            {
+                "id": tag.id,
+                "name": tag.name,
+                "icon": tag.icon,
+                "color": tag.color,
+                "link_count": count,
+            }
+            for tag, count in tags_with_counts
+        ]
+        collections = [
+            {"id": coll.id, "name": coll.name, "link_count": count}
+            for coll, count in collections_with_counts
+        ]
     finally:
         session.close()
     
