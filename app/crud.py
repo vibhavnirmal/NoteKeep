@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from typing import TypedDict
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -12,6 +13,47 @@ from .models import Collection, Link, Tag, link_tag_table
 from .schemas import LinkCreate, LinkUpdate
 
 DEFAULT_PAGE_SIZE = 25
+
+
+class DefaultTagBase(TypedDict):
+    name: str
+    slug: str
+
+
+class DefaultTag(DefaultTagBase, total=False):
+    icon: str | None
+    color: str | None
+    aliases: list[str]
+
+
+DEFAULT_TAGS: list[DefaultTag] = [
+    {"name": "YouTube", "slug": "youtube", "icon": "youtube", "color": "#ef4444"},
+    {"name": "Instagram", "slug": "instagram", "icon": "instagram", "color": "#db2777"},
+    {
+        "name": "Telegram",
+        "slug": "telegram",
+        "icon": "send",
+        "color": "#0284c7",
+        "aliases": ["t", "tg", "telegrambot", "telegramme", "t.me"],
+    },
+    {"name": "Reddit", "slug": "reddit", "icon": None, "color": "#f97316"},
+    {"name": "GitHub", "slug": "github", "icon": "github", "color": "#111827"},
+    {"name": "Twitter", "slug": "twitter", "icon": None, "color": "#0f172a"},
+    {"name": "LinkedIn", "slug": "linkedin", "icon": "linkedin", "color": "#2563eb"},
+    {"name": "Tutorial", "slug": "tutorial", "icon": "graduation-cap", "color": "#7c3aed"},
+    {"name": "Idea", "slug": "idea", "icon": "lightbulb", "color": "#16a34a"},
+    {"name": "Article", "slug": "article", "icon": "file-text", "color": "#6366f1"},
+    {"name": "Shopping", "slug": "shopping", "icon": "shopping-cart", "color": "#facc15"},
+    {"name": "Food", "slug": "food", "icon": "utensils-crossed", "color": "#fb923c"},
+]
+
+DEFAULT_TAG_ALIASES: dict[str, str] = {
+    alias.lower(): tag["slug"]
+    for tag in DEFAULT_TAGS
+    for alias in (tag.get("aliases") or [])
+}
+DEFAULT_TAG_SLUGS = [tag["slug"] for tag in DEFAULT_TAGS]
+DEFAULT_TAG_SLUG_SET = {tag["slug"] for tag in DEFAULT_TAGS}
 
 # UTM parameters to strip when checking for duplicates
 UTM_PARAMS = {
@@ -59,7 +101,79 @@ def _normalize_tag(tag: str) -> str:
     normalized = tag.strip().lower()
     if normalized.startswith("youtu"):
         return "youtube"
+    alias_target = DEFAULT_TAG_ALIASES.get(normalized)
+    if alias_target:
+        return alias_target
+    if normalized in DEFAULT_TAG_SLUG_SET:
+        return normalized
     return normalized
+
+
+def ensure_default_tags(session: Session) -> None:
+    """Ensure the core default tags exist with consistent metadata."""
+    existing_tags = session.execute(select(Tag)).scalars().all()
+    if not existing_tags:
+        existing_tags = []
+
+    def _find_matching_tag(candidate: dict[str, str | list[str] | None]) -> Tag | None:
+        target_slug = candidate["slug"].lower()
+        target_name = candidate["name"].lower()
+        aliases = {alias.lower() for alias in (candidate.get("aliases") or [])}
+        for tag in existing_tags:
+            slug = (tag.slug or "").lower()
+            name = (tag.name or "").lower()
+            if slug == target_slug or name == target_name:
+                return tag
+            if slug in aliases or name in aliases:
+                return tag
+        return None
+
+    for tag_def in DEFAULT_TAGS:
+        match = _find_matching_tag(tag_def)
+        if match:
+            updated = False
+            if match.name != tag_def["name"]:
+                match.name = tag_def["name"]
+                updated = True
+            if tag_def.get("icon") is not None and match.icon != tag_def.get("icon"):
+                match.icon = tag_def.get("icon")
+                updated = True
+            if tag_def.get("color") is not None and match.color != tag_def.get("color"):
+                match.color = tag_def.get("color")
+                updated = True
+            if updated:
+                session.add(match)
+        else:
+            new_tag = Tag(
+                name=tag_def["name"],
+                slug="",
+                icon=tag_def.get("icon"),
+                color=tag_def.get("color"),
+            )
+            session.add(new_tag)
+            existing_tags.append(new_tag)
+
+    session.flush()
+
+
+def get_default_tags(session: Session, limit: int = 5) -> list[Tag]:
+    """Return the default tags in their defined order, limited to the provided size."""
+    if limit <= 0:
+        return []
+    tags = session.execute(select(Tag)).scalars().all()
+    if not tags:
+        ensure_default_tags(session)
+        tags = session.execute(select(Tag)).scalars().all()
+    tags_by_slug = {(tag.slug or "").lower(): tag for tag in tags}
+    ordered: list[Tag] = []
+    for tag_def in DEFAULT_TAGS:
+        slug = tag_def["slug"]
+        match = tags_by_slug.get(slug)
+        if match:
+            ordered.append(match)
+        if len(ordered) >= limit:
+            break
+    return ordered
 
 
 def get_or_create_collection(session: Session, name: str | None) -> Collection | None:

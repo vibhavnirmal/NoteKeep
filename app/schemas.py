@@ -102,7 +102,6 @@ class LinkRead(BaseModel):
     url: str
     title: str | None
     notes: str | None
-    in_inbox: bool
     created_at: datetime
     updated_at: datetime
     tags: list[TagRead]

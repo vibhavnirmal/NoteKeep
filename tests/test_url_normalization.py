@@ -67,8 +67,6 @@ def test_duplicate_detection_with_utm_params(db_session):
         notes="",
         collection=None,
         tags=[],
-        in_inbox=True,
-        is_done=False
     )
     created_link = create_link(db_session, link1)
     db_session.commit()
@@ -91,8 +89,6 @@ def test_different_urls_not_duplicates(db_session):
         notes="",
         collection=None,
         tags=[],
-        in_inbox=True,
-        is_done=False
     )
     create_link(db_session, link1)
     db_session.commit()
@@ -113,8 +109,6 @@ def test_same_domain_different_path_not_duplicate(db_session):
         notes="",
         collection=None,
         tags=[],
-        in_inbox=True,
-        is_done=False
     )
     create_link(db_session, link1)
     db_session.commit()
@@ -135,8 +129,6 @@ def test_original_url_preserved_in_database(db_session):
         notes="",
         collection=None,
         tags=[],
-        in_inbox=True,
-        is_done=False
     )
     created = create_link(db_session, link)
     db_session.commit()

@@ -286,8 +286,6 @@ async def process_message(message: dict[str, Any]) -> None:
                 notes=None,
                 tags=tags,
                 collection=None,
-                is_done=False,
-                in_inbox=True,
             )
 
             # Create link in database

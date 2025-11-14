@@ -41,7 +41,6 @@ def test_create_and_list_link():
         "notes": "Testing",
         "tags": ["test", "example"],
         "collection": "Reading",
-        "is_done": False,
     }
 
     create_response = client.post(

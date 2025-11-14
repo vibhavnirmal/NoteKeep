@@ -10,6 +10,7 @@ const titleInput = document.querySelector('input[name="title"]');
 const previewEl = document.querySelector('#link-preview');
 let dbPromise;
 let fetchTimeout;
+let recommendedPicker;
 
 function setStatus(message, type = 'muted') {
   if (!statusEl) return;
@@ -24,6 +25,12 @@ function setStatus(message, type = 'muted') {
   } else {
     statusEl.classList.add('text-gray-600');
   }
+}
+
+function clearStatus() {
+  if (!statusEl) return;
+  statusEl.textContent = '';
+  statusEl.classList.add('hidden');
 }
 
 function openDatabase() {
@@ -128,6 +135,14 @@ async function handleSubmit(event) {
     tags: [],
     collection: null,
   };
+  const selectedTagsRaw = formData.get('selected_tags');
+  if (selectedTagsRaw) {
+    link.tags = selectedTagsRaw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+  }
   if (!link.url) {
     setStatus('URL is required.', 'error');
     return;
@@ -141,6 +156,9 @@ async function handleSubmit(event) {
     if (!navigator.onLine || (error instanceof TypeError && error.message.includes('fetch'))) {
       await storePending({ payload: link, createdAt: Date.now() });
       form.reset();
+      if (recommendedPicker) {
+        recommendedPicker.reset();
+      }
       return;
     }
     console.error(error);
@@ -259,11 +277,86 @@ function handleUrlChange() {
   }
 }
 
+function setupRecommendedTagPicker() {
+  const container = document.querySelector('[data-recommended-tags]');
+  const hiddenInput = document.querySelector('#selected-tags');
+  if (!container || !hiddenInput) {
+    return null;
+  }
+
+  const selected = new Set();
+  const baseClasses = ['bg-white', 'text-gray-700', 'border-gray-200'];
+  const activeClasses = ['bg-primary-600', 'text-white', 'border-primary-600', 'shadow'];
+
+  function syncHiddenInput() {
+    hiddenInput.value = Array.from(selected).join(',');
+  }
+
+  function setButtonState(button, isActive) {
+    if (isActive) {
+      button.classList.add(...activeClasses);
+      button.classList.remove(...baseClasses);
+      button.setAttribute('aria-pressed', 'true');
+    } else {
+      button.classList.remove(...activeClasses);
+      button.classList.add(...baseClasses);
+      button.setAttribute('aria-pressed', 'false');
+    }
+  }
+
+  function toggleTag(button) {
+    const value = button.dataset.tagValue;
+    if (!value) {
+      return;
+    }
+    if (selected.has(value)) {
+      selected.delete(value);
+      setButtonState(button, false);
+      syncHiddenInput();
+      clearStatus();
+      return;
+    }
+    if (selected.size >= 4) {
+      setStatus('You can choose up to 4 tags. Remove one to add another.', 'error');
+      window.setTimeout(() => {
+        clearStatus();
+      }, 2500);
+      return;
+    }
+    selected.add(value);
+    setButtonState(button, true);
+    syncHiddenInput();
+  }
+
+  container.querySelectorAll('button[data-tag-value]').forEach((button) => {
+    setButtonState(button, false);
+    button.addEventListener('click', () => toggleTag(button));
+  });
+
+  syncHiddenInput();
+
+  return {
+    reset() {
+      selected.clear();
+      container.querySelectorAll('button[data-tag-value]').forEach((button) => {
+        setButtonState(button, false);
+      });
+      syncHiddenInput();
+    },
+  };
+}
+
 function bootstrap() {
   if (!form) {
     return;
   }
   form.addEventListener('submit', handleSubmit);
+  recommendedPicker = setupRecommendedTagPicker();
+  if (recommendedPicker) {
+    form.addEventListener('reset', () => {
+      recommendedPicker.reset();
+    });
+  }
   
   if (urlInput) {
     urlInput.addEventListener('input', handleUrlChange);
@@ -283,6 +376,10 @@ function bootstrap() {
     setStatus('Back online. Syncing…', 'muted');
     flushQueue().catch((error) => console.error('Flush error', error));
   });
+
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

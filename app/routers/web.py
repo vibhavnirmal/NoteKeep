@@ -14,6 +14,7 @@ from ..crud import (
     delete_collection,
     delete_link,
     delete_tag,
+    get_default_tags,
     get_collection,
     get_link,
     get_tag,
@@ -139,12 +140,25 @@ def link_detail_view(request: Request, link_id: int):
         if not link:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
         collections = list_collections(session)
+        available_tag_entities = list_tags(session)
+        available_tags = [
+            {
+                "name": tag.name,
+                "slug": tag.slug,
+                "icon": tag.icon,
+                "color": tag.color,
+            }
+            for tag in available_tag_entities
+            if tag.name
+        ]
+        available_tags.sort(key=lambda item: item["name"].lower())
         return templates.TemplateResponse(
             "link_detail.html",
             {
                 "request": request,
                 "link": link,
                 "collections": collections,
+                "available_tags": available_tags,
             },
         )
     finally:
@@ -279,6 +293,22 @@ def add_page(
     bulk_success: str | None = Query(None),
     bulk_error: str | None = Query(None),
 ):
+    recommended_tags: list[dict[str, str | None]] = []
+    session = _get_session()
+    try:
+        recommended_tag_entities = get_default_tags(session, limit=5)
+        recommended_tags = [
+            {
+                "name": tag.name,
+                "slug": tag.slug,
+                "icon": tag.icon,
+                "color": tag.color,
+            }
+            for tag in recommended_tag_entities
+            if tag.slug
+        ]
+    finally:
+        session.close()
     return templates.TemplateResponse(
         "add.html",
         {
@@ -289,6 +319,7 @@ def add_page(
             },
             "bulk_success_message": bulk_success,
             "bulk_error_message": bulk_error,
+            "recommended_tags": recommended_tags,
         },
     )
 
@@ -444,8 +475,6 @@ async def bulk_import_csv(request: Request, file: UploadFile):
                     title=title,
                     notes=notes,
                     tags=tags,
-                    in_inbox=True,  # All bulk imports go to inbox
-                    is_done=False,  # Mark as new/unread
                 )
                 create_link(session, link_data)
                 imported_count += 1
