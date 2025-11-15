@@ -20,6 +20,13 @@ env/
 *.sqlite3
 *.db
 notekeep.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Alembic
+__pycache__/
+*.pyc
 
 # Environment Variables
 .env

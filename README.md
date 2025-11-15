@@ -41,6 +41,10 @@ python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
 pip install -e .[dev]
+
+# Run database migrations
+python migrate.py
+
 uvicorn app.main:app --reload
 ```
 
@@ -54,7 +58,28 @@ Build and run with Compose:
 docker compose up --build
 ```
 
-The app listens on port `8000`. SQLite database persists to `notekeep.db` in the project root.
+The app listens on port `8696`. SQLite database persists to `./data/notekeep.db`.
+
+**Note:** Database migrations run automatically on container startup.
+
+## Database Migrations
+
+NoteKeep uses Alembic for database migrations to ensure backward compatibility.
+
+**Docker users:** Migrations run automatically on container startup.
+
+**Non-Docker users:**
+```bash
+python migrate.py  # Run before starting the app
+```
+
+**Creating new migrations** (when you modify `app/models.py`):
+```bash
+python migrate.py --create "description"  # Create migration
+python migrate.py                          # Apply migration
+```
+
+See [MIGRATIONS.md](MIGRATIONS.md) for detailed documentation.
 
 ## Offline Capture Workflow
 
