@@ -110,18 +110,19 @@
                 </div>
             </div>
         </div>
-        </div>
     </header>
     {% endif %}
     {% endblock %}
     <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 pb-4 sm:py-6">{% block content %}{% endblock %}</main>
     
     <!-- Floating Action Button (FAB) for Quick Add -->
-    <a href="/add" 
+    {% if request.url.path == "/links" %}
+    <a href="/add" id="fab"
        class="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 active:scale-95"
        aria-label="Quick Add Link">
         <i data-lucide="plus" class="w-6 h-6"></i>
     </a>
+    {% endif %}
     
     <footer class="py-4 sm:py-6 border-t border-gray-200 bg-white/50 backdrop-blur-sm">
         <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
@@ -132,6 +133,19 @@
         </div>
     </footer>
     <script>
+
+        let lastScrollTop = 0;
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const fab = document.getElementById('fab');
+            if (scrollTop > lastScrollTop) {
+                fab.style.opacity = '0.5';
+            } else {
+                fab.style.opacity = '1';
+            }
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        }, false);
+
         // Mobile bottom nav does not need JS for simple navigation links
         
         if ('serviceWorker' in navigator) {

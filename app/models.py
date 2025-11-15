@@ -67,6 +67,19 @@ class Link(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
     image_url: Mapped[str | None] = mapped_column(Text)  # Preview image URL from og:image
 
+    # Image checking metadata
+    image_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    image_check_status: Mapped[str | None] = mapped_column(
+        String(20)
+    )  # 'pending', 'success', 'failed', 'not_found'
+
+    # Link health metadata
+    link_status: Mapped[str | None] = mapped_column(
+        String(20)
+    )  # 'active', 'broken', 'unreachable', 'error'
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    http_status_code: Mapped[int | None] = mapped_column(Integer)
+
     collection_id: Mapped[int | None] = mapped_column(ForeignKey("collections.id"))
     collection: Mapped[Collection | None] = relationship("Collection", back_populates="links")
 

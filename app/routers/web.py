@@ -11,13 +11,16 @@ from fastapi import (
     Request,
     UploadFile,
     status,
+    BackgroundTasks
 )
+from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from ..crud import (
     create_collection,
+    create_link,
     create_tag,
     delete_collection,
     delete_link,
@@ -35,8 +38,10 @@ from ..crud import (
     update_link,
     update_tag,
 )
-from ..database import SessionLocal
+from ..database import SessionLocal, get_db
 from ..schemas import LinkUpdate
+
+from app.link_preview import fetch_link_metadata
 
 router = APIRouter()
 
@@ -184,6 +189,7 @@ def list_links_view(
     has_notes: bool | None = Query(None),
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
+    broken: bool | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     updated: int = Query(0),
@@ -200,6 +206,7 @@ def list_links_view(
             has_notes=has_notes,
             date_from=date_from,
             date_to=date_to,
+            broken=broken,
             page=page,
             page_size=page_size,
         )
@@ -237,6 +244,7 @@ def list_links_view(
             "has_notes": has_notes,
             "date_from": date_from,
             "date_to": date_to,
+            "show_broken": broken,
             "success_message": "Link updated successfully!" if updated else None,
         },
     )
@@ -276,10 +284,29 @@ def update_link_view(
     redirect_url = f"{referer}{separator}updated=1"
     return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
+@router.post("/add")
+async def add_link_post(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    url: str = Form(...),
+    title: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    # Create link with URL as title if not provided
+    if not title:
+        title = url
+    link = create_link(db, url=url, title=title)
+    # Add background task to fetch real title
+    background_tasks.add_task(fetch_and_update_title, db, link.id)
+    return RedirectResponse(url="/links", status_code=303)
 
-
-
-@router.post("/links/{link_id}/update")
+async def fetch_and_update_title(db: Session, link_id: int):
+    link = get_link(db, link_id)
+    if link:
+        metadata = await fetch_link_metadata(link.url)
+        if metadata.get('title'):
+            link.title = metadata['title']
+            db.commit()
 
 
 
@@ -309,7 +336,7 @@ def add_page(
     title: str | None = Query(None),
     notes: str | None = Query(None),
     bulk_success: str | None = Query(None),
-    bulk_error: str | None = Query(None),
+    bulk_error: str | None = Query(None)
 ):
     recommended_tags: list[dict[str, str | None]] = []
     session = _get_session()

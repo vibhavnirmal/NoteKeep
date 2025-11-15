@@ -15,10 +15,42 @@
     </div> -->
 
     <!-- Link Detail Card -->
-    <article class="">
+    <article class="{% if link.link_status == 'broken' %}bg-red-50 border-red-200{% elif link.link_status == 'unreachable' or link.link_status == 'error' %}bg-orange-50 border-orange-200{% endif %}">
         <!-- Header -->
         <div class="flex flex-col p-3 border-b border-gray-200">
-            <h1 class="text-base sm:text-lg font-bold text-gray-900 break-words max-w-full">{{ link.title or link.url }}</h1>
+            <div class="flex items-start gap-2 mb-2">
+                <h1 class="text-base sm:text-lg font-bold {% if link.link_status == 'broken' %}text-red-700 line-through{% elif link.link_status == 'unreachable' or link.link_status == 'error' %}text-orange-700{% else %}text-gray-900{% endif %} break-words max-w-full flex-1">{{ link.title or link.url }}</h1>
+                {% if link.link_status == 'broken' %}
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-300 flex-shrink-0">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    <span>Link Broken</span>
+                </div>
+                {% elif link.link_status == 'unreachable' %}
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium border border-orange-300 flex-shrink-0">
+                    <i data-lucide="wifi-off" class="w-4 h-4"></i>
+                    <span>Unreachable</span>
+                </div>
+                {% elif link.link_status == 'error' %}
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium border border-orange-300 flex-shrink-0">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    <span>Error</span>
+                </div>
+                {% endif %}
+            </div>
+            {% if link.link_status == 'broken' or link.link_status == 'unreachable' or link.link_status == 'error' %}
+            <div class="mb-2 p-2 bg-white rounded border {% if link.link_status == 'broken' %}border-red-200{% else %}border-orange-200{% endif %}">
+                <p class="text-xs text-gray-600">
+                    <strong>Status:</strong> 
+                    {% if link.http_status_code %}HTTP {{ link.http_status_code }}{% else %}Connection failed{% endif %}
+                    {% if link.last_checked_at %}
+                    • Last checked: {{ link.last_checked_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                </p>
+                {% if link.link_status == 'broken' %}
+                <p class="text-xs text-red-600 mt-1">⚠️ This link appears to be deleted or no longer exists.</p>
+                {% endif %}
+            </div>
+            {% endif %}
             <a href="{{ link.url }}" target="_blank" rel="noopener"
                 class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors break-all">
                 <i data-lucide="external-link" class="w-3 h-3 flex-shrink-0"></i>

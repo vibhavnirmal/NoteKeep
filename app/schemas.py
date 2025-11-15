@@ -105,6 +105,11 @@ class LinkRead(BaseModel):
     title: str | None
     notes: str | None
     image_url: str | None
+    image_checked_at: datetime | None
+    image_check_status: str | None
+    link_status: str | None
+    last_checked_at: datetime | None
+    http_status_code: int | None
     created_at: datetime
     updated_at: datetime
     tags: list[TagRead]

@@ -62,27 +62,56 @@ The app listens on port `8000`. SQLite database persists to `notekeep.db` in the
 2. Share URLs to `https://your-host/add?url=...`.
 3. If offline, the page queues submissions locally and syncs when reconnected.
 
-## Bulk Import
+### Bulk Import from Textarea
 
-Import multiple links at once using the Bulk Import tab on the Add page:
+You can import multiple links at once by pasting them into the textarea on the Add page. All imported links are added to your inbox.
 
-### Text Input
-Paste multiple URLs, one per line. Optionally add titles using the pipe separator:
+## Link Health & Image Management
+
+NoteKeep automatically fetches preview images AND checks link health when links are added. For existing links, you can run the maintenance script:
+
+```bash
+# Initial migration: Check links missing images (run once)
+python3 check_link_images.py --mode missing --batch-size 100
+
+# Periodic maintenance: Check for broken/outdated links and images (recommended: weekly)
+python3 check_link_images.py --mode missing --batch-size 50 --max-age-days 90
+
+# Retry failed image fetches
+python3 check_link_images.py --mode broken --batch-size 50
+
+# Run all checks
+python3 check_link_images.py --mode all
+
+# List all broken/deleted links found
+python3 check_link_images.py --mode list-broken
 ```
-https://example.com/article1
-https://example.com/article2 | My Article Title
+
+### Automated Maintenance (Recommended)
+
+Set up a weekly cron job to check for broken links, missing images, and verify existing ones:
+
+```bash
+# Add to crontab (crontab -e)
+# Run every Sunday at 2 AM - checks 50 links older than 90 days
+0 2 * * 0 cd /path/to/notekeep && python3 check_link_images.py --mode missing --batch-size 50 --max-age-days 90
 ```
 
-### CSV Upload
-Upload a CSV file with the following columns:
-- `url` (required) - The link URL
-- `title` (optional) - Custom title for the link
-- `notes` (optional) - Additional notes
-- `tags` (optional) - Comma-separated tags
+### How It Works
 
-See `sample_import.csv` for an example format.
+**Link Health Tracking:**
+- **New links**: Health checked immediately when added
+- **Status tracking**: `active`, `broken` (404/410), `unreachable`, or `error`
+- **HTTP codes**: Stores status codes (404, 500, etc.) for debugging
+- **Re-verification**: Links re-checked every 90 days to catch newly broken ones
 
-All imported links are added to your inbox as unread/new items.
+**Image Management:**
+- **New links**: Images fetched immediately when added
+- **Old links without images**: Checked once, then marked to avoid redundant requests
+- **Links with images**: Re-verified every 90 days alongside health checks
+- **Failed fetches**: Retry with backoff (won't spam failed URLs)
+
+The system tracks `last_checked_at`, `link_status`, `http_status_code`, `image_checked_at`, and `image_check_status` to prevent recursive checking while keeping your database fresh and alerting you to broken links.
 
 ## Testing
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..crud import (
@@ -25,11 +25,22 @@ router = APIRouter(prefix="/api", tags=["links"])
 SessionDep = Annotated[Session, Depends(get_db)]
 
 
+async def fetch_and_update_title(session: Session, link_id: int) -> None:
+    """Background task to fetch and update link title."""
+    link = get_link(session, link_id)
+    if link and link.title and link.title.startswith("http"):  # Only update if title is still a URL
+        metadata = await fetch_link_metadata(link.url)
+        if metadata.get("title"):
+            link.title = metadata["title"]
+            session.commit()
+
+
 @router.post("/links", response_model=LinkRead, status_code=status.HTTP_201_CREATED)
 def api_create_link(
     payload: LinkCreate,
     *,
     session: SessionDep,
+    background_tasks: BackgroundTasks,
 ) -> LinkRead:
     # Check for duplicate URL
     existing_link = get_link_by_url(session, str(payload.url))
@@ -46,6 +57,10 @@ def api_create_link(
 
     link = create_link(session, payload)
     session.commit()
+    
+    # Start background task to fetch title
+    background_tasks.add_task(fetch_and_update_title, session, link.id)
+    
     return LinkRead.model_validate(link)
 
 
@@ -150,8 +165,8 @@ def api_export_links(
 
 
 @router.get("/preview")
-def api_fetch_preview(
+async def api_fetch_preview(
     url: str = Query(..., description="URL to fetch preview metadata for"),
 ) -> dict[str, str | None]:
     """Fetch preview metadata (title, description, image) for a URL."""
-    return fetch_link_metadata(url)
+    return await fetch_link_metadata(url)

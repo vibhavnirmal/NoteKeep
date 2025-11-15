@@ -3,10 +3,11 @@
 {% block content %}
 <!-- Back button -->
 <div class="m-3">
-    <a href="/links" class="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors text-sm">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        Back to Links
-    </a>
+  <a href="/links"
+    class="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors text-sm">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    Back to Links
+  </a>
 </div>
 
 <!-- <div class="mb-4 sm:mb-6">
@@ -16,18 +17,12 @@
 <!-- Tab Navigation -->
 <div class="border-b border-gray-200 mb-4 sm:mb-6">
   <nav class="flex gap-4 sm:gap-8">
-    <button 
-      onclick="switchAddTab('single')" 
-      data-add-tab="single" 
-      class="add-tab-button py-2 sm:py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 font-medium text-xs sm:text-sm"
-    >
+    <button onclick="switchAddTab('single')" data-add-tab="single"
+      class="add-tab-button py-2 sm:py-3 px-1 border-b-2 border-indigo-600 text-indigo-600 font-medium text-xs sm:text-sm">
       Single Link
     </button>
-    <button 
-      onclick="switchAddTab('bulk')" 
-      data-add-tab="bulk" 
-      class="add-tab-button py-2 sm:py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-xs sm:text-sm"
-    >
+    <button onclick="switchAddTab('bulk')" data-add-tab="bulk"
+      class="add-tab-button py-2 sm:py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-xs sm:text-sm">
       Bulk Import
     </button>
   </nav>
@@ -35,127 +30,145 @@
 
 <!-- Single Link Tab -->
 <div id="single-tab" class="add-tab-content">
-    <div class="bg-white border border-gray-200 rounded p-3 sm:p-4">
-        <div id="add-status" class="hidden text-xs sm:text-sm mb-2"></div>
-        <div id="link-preview" class="hidden mb-4"></div>
-        <form id="add-form" class="space-y-3">
-            <input type="hidden" name="title" value="{{ prefill.title }}" />
-            <div>
-                <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">URL</label>
-                <input type="url" name="url" required value="{{ prefill.url }}"
-                    placeholder="https://example.com/article"
-                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-            </div>
-            <button type="submit"
-                class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition">Save
-                link</button>
-        </form>
-    </div>
+  <div class="bg-white border border-gray-200 rounded p-3 sm:p-4">
+    <div id="add-status" class="hidden text-xs sm:text-sm mb-2"></div>
+    <div id="link-preview" class="hidden mb-4"></div>
+    <form id="add-form" class="space-y-3">
+      <input type="hidden" name="title" value="{{ prefill.title }}" />
+      <div>
+        <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">URL</label>
+        <input type="url" name="url" required value="{{ prefill.url }}" placeholder="https://example.com/article"
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+      </div>
+      <button type="submit"
+        class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition">Save
+        link</button>
+    </form>
+  </div>
 </div>
 
 <!-- Bulk Import Tab -->
 <div id="bulk-tab" class="add-tab-content hidden">
-    <div class="bg-white border border-gray-200 rounded p-3 sm:p-4">
-        {% if bulk_success_message %}
-        <div class="mb-4 rounded border-l-4 border-green-500 bg-green-50 px-3 sm:px-4 py-3 text-xs sm:text-sm text-green-800">{{ bulk_success_message }}</div>
-        {% endif %}
-        {% if bulk_error_message %}
-        <div class="mb-4 rounded border-l-4 border-red-500 bg-red-50 px-3 sm:px-4 py-3 text-xs sm:text-sm text-red-800">{{ bulk_error_message }}</div>
-        {% endif %}
-        
-  <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-2 sm:mb-3">Import Multiple Links</h3>
-        <p class="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">Paste multiple URLs or upload a CSV file to add them all at once.</p>
-        
-        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-            <p class="text-xs sm:text-sm font-medium text-blue-900 mb-2">Accepted Formats:</p>
-            <ul class="text-xs text-blue-800 space-y-1 ml-4 list-disc">
-                <li><strong>Text input - One URL per line:</strong> https://example.com</li>
-                <li><strong>Text input - URL with title:</strong> https://example.com | My Article Title</li>
-                <li><strong>CSV file:</strong> Headers: url, title (optional), notes (optional), tags (optional)</li>
-            </ul>
-            <p class="text-xs text-blue-700 mt-2">✓ Blank lines will be ignored<br>✓ Invalid URLs will be skipped<br>✓ CSV Example: url,title,tags<br>&nbsp;&nbsp;https://example.com,My Article,tech</p>
-        </div>
-        
-        <!-- Text Input Form -->
-        <form action="/bulk-import" method="post" class="space-y-3 mb-4 sm:mb-6">
-            <div>
-                <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">Paste URLs (one per line)</label>
-                <textarea 
-                    name="urls" 
-                    rows="8" 
-                    placeholder="https://example.com/article1&#10;https://example.com/article2 | Important Article&#10;https://example.com/article3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y font-mono"
-                ></textarea>
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <p class="text-xs text-gray-500">Tip: You can copy-paste from a bookmarks export or reading list</p>
-                <button type="submit"
-                    class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition">
-                    Import from Text
-                </button>
-            </div>
-        </form>
+  <div class="bg-white border border-gray-200 rounded p-3 sm:p-4">
+    {% if bulk_success_message %}
+    <div
+      class="mb-4 rounded border-l-4 border-green-500 bg-green-50 px-3 sm:px-4 py-3 text-xs sm:text-sm text-green-800">
+      {{ bulk_success_message }}</div>
+    {% endif %}
+    {% if bulk_error_message %}
+    <div class="mb-4 rounded border-l-4 border-red-500 bg-red-50 px-3 sm:px-4 py-3 text-xs sm:text-sm text-red-800">{{
+      bulk_error_message }}</div>
+    {% endif %}
 
-        <!-- Divider -->
-        <div class="relative my-4 sm:my-6">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300"></div>
-            </div>
-            <div class="relative flex justify-center text-xs sm:text-sm">
-                <span class="px-2 bg-white text-gray-500">OR</span>
-            </div>
-        </div>
+    <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-2 sm:mb-3">Import Multiple Links</h3>
+    <p class="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">Paste multiple URLs or upload a CSV file to add them all at
+      once.</p>
 
-        <!-- CSV Upload Form -->
-        <form action="/bulk-import-csv" method="post" enctype="multipart/form-data" class="space-y-3">
-            <div>
-                <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">Upload CSV File</label>
-                <input 
-                    type="file" 
-                    name="file" 
-                    accept=".csv,text/csv"
-                    required
-                    class="block w-full text-xs sm:text-sm text-gray-900 border border-gray-300 rounded cursor-pointer bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 px-3 py-2"
-                />
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <p class="text-xs text-gray-500">CSV should have headers: url, title (optional), notes (optional), tags (optional)</p>
-                <button type="submit"
-                    class="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition">
-                    Import from CSV
-                </button>
-            </div>
-        </form>
+    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+      <p class="text-xs sm:text-sm font-medium text-blue-900 mb-2">Accepted Formats:</p>
+      <ul class="text-xs text-blue-800 space-y-1 ml-4 list-disc">
+        <li><strong>Text input - One URL per line:</strong> https://example.com</li>
+        <li><strong>Text input - URL with title:</strong> https://example.com | My Article Title</li>
+        <li><strong>CSV file:</strong> Headers: url, title (optional), notes (optional), tags (optional)</li>
+      </ul>
+      <p class="text-xs text-blue-700 mt-2">✓ Blank lines will be ignored<br>✓ Invalid URLs will be skipped<br>✓ CSV
+        Example: url,title,tags<br>&nbsp;&nbsp;https://example.com,My Article,tech</p>
     </div>
+
+    <!-- Text Input Form -->
+    <form action="/bulk-import" method="post" class="space-y-3 mb-4 sm:mb-6">
+      <div>
+        <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">Paste URLs (one per line)</label>
+        <textarea name="urls" rows="8"
+          placeholder="https://example.com/article1&#10;https://example.com/article2 | Important Article&#10;https://example.com/article3"
+          class="w-full px-3 py-2 border border-gray-300 rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y font-mono"></textarea>
+      </div>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p class="text-xs text-gray-500">Tip: You can copy-paste from a bookmarks export or reading list</p>
+        <button type="submit"
+          class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded font-medium text-sm hover:bg-indigo-700 transition">
+          Import from Text
+        </button>
+      </div>
+    </form>
+
+    <!-- Divider -->
+    <div class="relative my-4 sm:my-6">
+      <div class="absolute inset-0 flex items-center">
+        <div class="w-full border-t border-gray-300"></div>
+      </div>
+      <div class="relative flex justify-center text-xs sm:text-sm">
+        <span class="px-2 bg-white text-gray-500">OR</span>
+      </div>
+    </div>
+
+    <!-- CSV Upload Form -->
+    <form action="/bulk-import-csv" method="post" enctype="multipart/form-data" class="space-y-3">
+      <div>
+        <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">Upload CSV File</label>
+        <input type="file" name="file" accept=".csv,text/csv" required
+          class="block w-full text-xs sm:text-sm text-gray-900 border border-gray-300 rounded cursor-pointer bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 px-3 py-2" />
+      </div>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p class="text-xs text-gray-500">CSV should have headers: url, title (optional), notes (optional), tags
+          (optional)</p>
+        <button type="submit"
+          class="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded font-medium text-sm hover:bg-green-700 transition">
+          Import from CSV
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
-function switchAddTab(tabName) {
-  // Update tab buttons
-  document.querySelectorAll('.add-tab-button').forEach(btn => {
-    if (btn.dataset.addTab === tabName) {
-      btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700');
-      btn.classList.add('border-indigo-600', 'text-indigo-600');
-    } else {
-      btn.classList.remove('border-indigo-600', 'text-indigo-600');
-      btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+  // client side form validation
+  document.getElementById('add-form').addEventListener('submit', (e) => {
+    const url = e.target.url.value;
+    if (!url || !url.match(/^https?:\/\/.+/)) {
+      e.preventDefault();
+      alert('Please enter a valid URL starting with http:// or https://');
     }
   });
   
-  // Update tab content
-  document.querySelectorAll('.add-tab-content').forEach(content => {
-    content.classList.add('hidden');
+  document.querySelectorAll('.add-tab-button').forEach(btn => {
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        switchAddTab(btn.dataset.addTab);
+      }
+    });
   });
-  document.getElementById(tabName + '-tab').classList.remove('hidden');
-}
 
-// Check URL hash for active tab
-window.addEventListener('DOMContentLoaded', () => {
-  const hash = window.location.hash.substring(1);
-  if (hash === 'bulk') {
-    switchAddTab('bulk');
+  function switchAddTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.add-tab-button').forEach(btn => {
+      if (btn.dataset.addTab === tabName) {
+        btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+        btn.classList.add('border-indigo-600', 'text-indigo-600');
+      } else {
+        btn.classList.remove('border-indigo-600', 'text-indigo-600');
+        btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+      }
+    });
+
+    // Update tab content
+    document.querySelectorAll('.add-tab-content').forEach(content => {
+      content.classList.add('hidden');
+    });
+    document.getElementById(tabName + '-tab').classList.remove('hidden');
+
+    // Update URL hash
+    window.location.hash = tabName === 'single' ? '' : tabName;
   }
-});
+
+  // Check URL hash for active tab
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash.substring(1);
+    if (hash === 'bulk') {
+      switchAddTab('bulk');
+    }
+  });
 </script>
 {% endblock %}
 {% block extra_scripts %}

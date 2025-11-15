@@ -66,9 +66,6 @@
         {% if has_notes %}
         <input type="hidden" name="has_notes" value="true" />
         {% endif %}
-        {% if is_unread %}
-        <input type="hidden" name="is_unread" value="true" />
-        {% endif %}
         {% if date_from %}
         <input type="hidden" name="date_from" value="{{ date_from }}" />
         {% endif %}
@@ -190,7 +187,7 @@
 </div>
 
 <!-- Mobile Clear Filters Button (shown when filters are active) -->
-{% if search or filter_tag or filter_collection or filter_tags or filter_collections or has_notes or is_unread or date_from or date_to %}
+{% if search or filter_tag or filter_collection or filter_tags or filter_collections or has_notes or date_from or date_to %}
 <div class="mb-4 lg:hidden">
     <a href="/links" class="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-300">
         <i data-lucide="x-circle" class="w-4 h-4"></i>
@@ -252,7 +249,7 @@
             <!-- Links in this group -->
             <div class="space-y-2">
             {% for link in group_links %}
-            <article class="bg-white border border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-md transition-all group">
+            <article class="bg-white border {% if link.link_status == 'broken' %}border-red-300 bg-red-50{% elif link.link_status == 'unreachable' or link.link_status == 'error' %}border-orange-300 bg-orange-50{% else %}border-gray-200{% endif %} rounded-lg hover:border-primary-400 hover:shadow-md transition-all group" data-link-id="{{ link.id }}">
                 <a href="/links/{{ link.id }}" class="block p-3">
                     <div class="flex items-center gap-3">
                         <!-- Thumbnail Image -->
@@ -267,9 +264,27 @@
                         
                         <!-- Title Section -->
                         <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-sm text-gray-900 group-hover:text-primary-600 transition-colors truncate mb-1">
-                                {{ link.title or link.url }}
-                            </h3>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h3 class="link-title font-semibold text-sm {% if link.link_status == 'broken' %}text-red-700 line-through{% elif link.link_status == 'unreachable' or link.link_status == 'error' %}text-orange-700{% else %}text-gray-900{% endif %} group-hover:text-primary-600 transition-colors truncate">
+                                    {{ link.title or link.url }}
+                                </h3>
+                                {% if link.link_status == 'broken' %}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium flex-shrink-0" title="Link is broken (HTTP {{ link.http_status_code or '404' }})">
+                                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                                    <span class="hidden sm:inline">Broken</span>
+                                </span>
+                                {% elif link.link_status == 'unreachable' %}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium flex-shrink-0" title="Link is unreachable">
+                                    <i data-lucide="wifi-off" class="w-3 h-3"></i>
+                                    <span class="hidden sm:inline">Unreachable</span>
+                                </span>
+                                {% elif link.link_status == 'error' %}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium flex-shrink-0" title="Link error (HTTP {{ link.http_status_code or 'unknown' }})">
+                                    <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                                    <span class="hidden sm:inline">Error</span>
+                                </span>
+                                {% endif %}
+                            </div>
                             <div class="flex items-center gap-2 text-xs text-gray-500">
                                 <!-- Collection -->
                                 {% if link.collection %}
@@ -363,28 +378,24 @@
                     {% include 'partials/filter_content.html' ignore missing %}
                     <!-- Advanced Filters -->
                     <div class="">
-                        <div class="flex float-right text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <i data-lucide="sliders" class="w-5 h-5 text-gray-900"></i>
-                            Filters
-                        </div>
                         <form method="get" id="filter-form" class="space-y-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                                     <i data-lucide="tag" class="w-4 h-4 text-gray-500"></i>
-                                    Tags (select up to 2)
+                                    Tags
                                 </label>
                                 <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                                     {% for tag in tags %}
-                                    <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
-                                        <input type="checkbox" name="tags" value="{{ tag.slug }}" 
-                                            {% if tag.slug in filter_tags %}checked{% endif %}
-                                            class="tag-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                                    <label class="flex items-center justify-between  gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                         <span class="text-sm text-gray-700 flex items-center gap-1.5">
                                             {% if tag.icon %}
                                             <i data-lucide="{{ tag.icon }}" class="w-4 h-4" style="color: {{ tag.color or '#6b7280' }};"></i>
                                             {% endif %}
                                             {{ tag.name }}
                                         </span>
+                                        <input type="checkbox" name="tags" value="{{ tag.slug }}" 
+                                            {% if tag.slug in filter_tags %}checked{% endif %}
+                                            class="tag-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                                     </label>
                                     {% endfor %}
                                 </div>
@@ -393,18 +404,18 @@
                             <div>
                                 <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                                     <i data-lucide="folder" class="w-4 h-4 text-gray-500"></i>
-                                    Collections (select up to 2)
+                                    Collections
                                 </label>
                                 <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                                     {% for collection in collections %}
-                                    <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
-                                        <input type="checkbox" name="collections" value="{{ collection.slug }}" 
-                                            {% if collection.slug in filter_collections %}checked{% endif %}
-                                            class="collection-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                                    <label class="flex items-center justify-between  gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                         <span class="text-sm text-gray-700 flex items-center gap-1.5">
                                             <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i>
                                             {{ collection.name }}
                                         </span>
+                                        <input type="checkbox" name="collections" value="{{ collection.slug }}" 
+                                            {% if collection.slug in filter_collections %}checked{% endif %}
+                                            class="collection-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                                     </label>
                                     {% endfor %}
                                 </div>
@@ -434,9 +445,12 @@
                                     </div>
                                     <div>
                                         <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" name="is_unread" value="true" {% if is_unread %}checked{% endif %}
-                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
-                                            <span class="text-sm font-medium text-gray-700">Unread Only</span>
+                                            <input type="checkbox" name="broken" value="true" {% if show_broken %}checked{% endif %}
+                                                class="rounded border-gray-300 text-red-600 focus:ring-red-500 w-5 h-5" />
+                                            <span class="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                                                <i data-lucide="alert-triangle" class="w-4 h-4 text-red-600"></i>
+                                                Broken Links Only
+                                            </span>
                                         </label>
                                     </div>
                                 </div>
@@ -465,28 +479,24 @@
             <!-- Copy of filter content for desktop -->
             <!-- Advanced Filters -->
             <div class="bg-white border border-gray-200 rounded-xl shadow-md p-5">
-                <h2 class="float-right text-base sm:text-lg font-bold text-gray-600 mb-4 flex items-center gap-2">
-                    <i data-lucide="sliders" class="w-5 h-5 text-gray-600"></i>
-                    Filters
-                </h2>
                 <form method="get" id="filter-form-desktop" class="space-y-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                             <i data-lucide="tag" class="w-4 h-4 text-gray-500"></i>
-                            Tags (select up to 2)
+                            Tags
                         </label>
                         <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                             {% for tag in tags %}
-                            <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
-                                <input type="checkbox" name="tags" value="{{ tag.slug }}" 
-                                    {% if tag.slug in filter_tags %}checked{% endif %}
-                                    class="tag-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                            <label class="flex items-center justify-between  gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                 <span class="text-sm text-gray-700 flex items-center gap-1.5">
                                     {% if tag.icon %}
                                     <i data-lucide="{{ tag.icon }}" class="w-4 h-4" style="color: {{ tag.color or '#6b7280' }};"></i>
                                     {% endif %}
                                     {{ tag.name }}
                                 </span>
+                                <input type="checkbox" name="tags" value="{{ tag.slug }}" 
+                                    {% if tag.slug in filter_tags %}checked{% endif %}
+                                    class="tag-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                             </label>
                             {% endfor %}
                         </div>
@@ -495,18 +505,18 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
                             <i data-lucide="folder" class="w-4 h-4 text-gray-500"></i>
-                            Collections (select up to 2)
+                            Collections
                         </label>
                         <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
                             {% for collection in collections %}
-                            <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
-                                <input type="checkbox" name="collections" value="{{ collection.slug }}" 
-                                    {% if collection.slug in filter_collections %}checked{% endif %}
-                                    class="collection-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
+                            <label class="flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                 <span class="text-sm text-gray-700 flex items-center gap-1.5">
                                     <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i>
                                     {{ collection.name }}
                                 </span>
+                                <input type="checkbox" name="collections" value="{{ collection.slug }}" 
+                                    {% if collection.slug in filter_collections %}checked{% endif %}
+                                    class="collection-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                             </label>
                             {% endfor %}
                         </div>
@@ -532,6 +542,16 @@
                                     <input type="checkbox" name="has_notes" value="true" {% if has_notes %}checked{% endif %}
                                         class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-5 h-5" />
                                     <span class="text-sm font-medium text-gray-700">Has Notes</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="broken" value="true" {% if show_broken %}checked{% endif %}
+                                        class="rounded border-gray-300 text-red-600 focus:ring-red-500 w-5 h-5" />
+                                    <span class="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-red-600"></i>
+                                        Broken Links Only
+                                    </span>
                                 </label>
                             </div>
                         </div>
@@ -687,41 +707,6 @@
         }
     });
 
-    // Limit checkbox selections to 2 for tags and collections
-    document.addEventListener('DOMContentLoaded', () => {
-        const MAX_SELECTIONS = 2;
-
-        // Handle tag checkboxes (mobile)
-        const tagCheckboxes = document.querySelectorAll('.tag-checkbox');
-        const tagCheckboxesDesktop = document.querySelectorAll('.tag-checkbox-desktop');
-        
-        // Handle collection checkboxes (mobile)
-        const collectionCheckboxes = document.querySelectorAll('.collection-checkbox');
-        const collectionCheckboxesDesktop = document.querySelectorAll('.collection-checkbox-desktop');
-
-        function limitCheckboxes(checkboxes, maxSelections) {
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    const checked = Array.from(checkboxes).filter(cb => cb.checked);
-                    if (checked.length > maxSelections) {
-                        checkbox.checked = false;
-                        // Show a brief visual feedback
-                        const label = checkbox.closest('label');
-                        if (label) {
-                            label.classList.add('bg-red-50');
-                            setTimeout(() => label.classList.remove('bg-red-50'), 300);
-                        }
-                    }
-                });
-            });
-        }
-
-        limitCheckboxes(tagCheckboxes, MAX_SELECTIONS);
-        limitCheckboxes(tagCheckboxesDesktop, MAX_SELECTIONS);
-        limitCheckboxes(collectionCheckboxes, MAX_SELECTIONS);
-        limitCheckboxes(collectionCheckboxesDesktop, MAX_SELECTIONS);
-    });
-
     // Show notes modal
     function showNotesModal(linkId, title, notes) {
         document.getElementById('modal-notes-title').textContent = title;
@@ -847,12 +832,19 @@
         // Utility to check a form's inputs
         function formHasAnyFilter(form) {
             if (!form) return false;
+            
+            // Check text inputs
             const searchInput = form.querySelector('input[name="search"]');
             const tagSelect = form.querySelector('select[name="tag"]');
             const collectionSelect = form.querySelector('select[name="collection"]');
             const dateFromInput = form.querySelector('input[name="date_from"]');
             const dateToInput = form.querySelector('input[name="date_to"]');
+            
+            // Check checkboxes
             const hasNotesCheckbox = form.querySelector('input[name="has_notes"]');
+            const brokenCheckbox = form.querySelector('input[name="broken"]');
+            const tagCheckboxes = form.querySelectorAll('input[name="tags"]:checked');
+            const collectionCheckboxes = form.querySelectorAll('input[name="collections"]:checked');
             
             const hasSearch = searchInput && searchInput.value.trim() !== '';
             const hasTag = tagSelect && tagSelect.value !== '';
@@ -860,8 +852,12 @@
             const hasDateFrom = dateFromInput && dateFromInput.value.trim() !== '';
             const hasDateTo = dateToInput && dateToInput.value.trim() !== '';
             const hasNotesFilter = hasNotesCheckbox && hasNotesCheckbox.checked;
+            const hasBrokenFilter = brokenCheckbox && brokenCheckbox.checked;
+            const hasTagsFilter = tagCheckboxes && tagCheckboxes.length > 0;
+            const hasCollectionsFilter = collectionCheckboxes && collectionCheckboxes.length > 0;
             
-            return hasSearch || hasTag || hasCollection || hasDateFrom || hasDateTo || hasNotesFilter;
+            return hasSearch || hasTag || hasCollection || hasDateFrom || hasDateTo || 
+                   hasNotesFilter || hasBrokenFilter || hasTagsFilter || hasCollectionsFilter;
         }
 
         function updateButtons() {
@@ -903,6 +899,9 @@
             const dateFromInput = form.querySelector('input[name="date_from"]');
             const dateToInput = form.querySelector('input[name="date_to"]');
             const hasNotesCheckbox = form.querySelector('input[name="has_notes"]');
+            const brokenCheckbox = form.querySelector('input[name="broken"]');
+            const tagCheckboxes = form.querySelectorAll('input[name="tags"]');
+            const collectionCheckboxes = form.querySelectorAll('input[name="collections"]');
 
             if (searchInput) searchInput.addEventListener('input', updateButtons);
             if (tagSelect) tagSelect.addEventListener('change', updateButtons);
@@ -910,6 +909,11 @@
             if (dateFromInput) dateFromInput.addEventListener('change', updateButtons);
             if (dateToInput) dateToInput.addEventListener('change', updateButtons);
             if (hasNotesCheckbox) hasNotesCheckbox.addEventListener('change', updateButtons);
+            if (brokenCheckbox) brokenCheckbox.addEventListener('change', updateButtons);
+            
+            // Add listeners to all tag and collection checkboxes
+            tagCheckboxes.forEach(cb => cb.addEventListener('change', updateButtons));
+            collectionCheckboxes.forEach(cb => cb.addEventListener('change', updateButtons));
         });
     })();
 
@@ -962,7 +966,35 @@
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
+        
+        // Start polling for title updates
+        pollForTitleUpdates();
     });
+
+    // Poll for title updates every 5 seconds
+    function pollForTitleUpdates() {
+        const linksToCheck = document.querySelectorAll('[data-link-id]');
+        linksToCheck.forEach(async (linkEl) => {
+            const linkId = linkEl.dataset.linkId;
+            const titleEl = linkEl.querySelector('.link-title');
+            if (titleEl && titleEl.textContent.includes('http')) {
+                try {
+                    const response = await fetch(`/api/links/${linkId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.title && data.title !== titleEl.textContent) {
+                            titleEl.textContent = data.title;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Failed to poll title update:', error);
+                }
+            }
+        });
+        
+        // Continue polling every 5 seconds
+        setTimeout(pollForTitleUpdates, 5000);
+    }
 </script>
 
 <!-- Delete Confirmation Modal -->

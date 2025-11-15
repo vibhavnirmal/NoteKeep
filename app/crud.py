@@ -29,13 +29,6 @@ class DefaultTag(DefaultTagBase, total=False):
 DEFAULT_TAGS: list[DefaultTag] = [
     {"name": "YouTube", "slug": "youtube", "icon": "youtube", "color": "#ef4444"},
     {"name": "Instagram", "slug": "instagram", "icon": "instagram", "color": "#db2777"},
-    {
-        "name": "Telegram",
-        "slug": "telegram",
-        "icon": "send",
-        "color": "#0284c7",
-        "aliases": ["t", "tg", "telegrambot", "telegramme", "t.me"],
-    },
     {"name": "Reddit", "slug": "reddit", "icon": None, "color": "#f97316"},
     {"name": "GitHub", "slug": "github", "icon": "github", "color": "#111827"},
     {"name": "Twitter", "slug": "twitter", "icon": None, "color": "#0f172a"},
@@ -71,16 +64,16 @@ def normalize_url(url: str) -> str:
         parsed = urlparse(url)
         if not parsed.query:
             return url
-        
+
         # Parse query parameters
         params = parse_qs(parsed.query, keep_blank_values=True)
-        
+
         # Remove UTM parameters
         filtered_params = {k: v for k, v in params.items() if k not in UTM_PARAMS}
-        
+
         # Rebuild query string
         new_query = urlencode(filtered_params, doseq=True) if filtered_params else ''
-        
+
         # Rebuild URL
         normalized = urlunparse((
             parsed.scheme,
@@ -90,7 +83,7 @@ def normalize_url(url: str) -> str:
             new_query,
             parsed.fragment
         ))
-        
+
         return normalized
     except Exception:
         # If normalization fails, return original URL
@@ -204,11 +197,11 @@ def get_or_create_tags(session: Session, tag_names: Iterable[str]) -> list[Tag]:
     cleaned = {_normalize_tag(tag) for tag in tag_names if tag and tag.strip()}
     if not cleaned:
         return tags
-    
+
     # Limit to maximum 4 tags
     if len(cleaned) > 4:
         cleaned = set(list(cleaned)[:4])
-    
+
     existing = session.execute(select(Tag).where(func.lower(Tag.name).in_(cleaned))).scalars().all()
     tags.extend(existing)
     for tag in cleaned:
@@ -226,39 +219,47 @@ def get_link_by_url(session: Session, url: str) -> Link | None:
     """
     from .models import Link
     normalized_url = normalize_url(url)
-    
+
     # Check all links and compare normalized URLs
     all_links = session.query(Link).all()
     for link in all_links:
         if normalize_url(link.url) == normalized_url:
             return link
-    
+
     return None
 
 
 def create_link(session: Session, payload: LinkCreate) -> Link:
     collection = get_or_create_collection(session, payload.collection)
     tags = get_or_create_tags(session, payload.tags)
-    
+
     # Fetch metadata including image if not provided
     image_url = payload.image_url
     if not image_url:
         from .link_preview import fetch_link_metadata
+        import asyncio
         try:
-            metadata = fetch_link_metadata(str(payload.url), timeout=5)
+            metadata = asyncio.run(fetch_link_metadata(str(payload.url), timeout=5))
             if metadata and metadata.get("image"):
                 image_url = metadata["image"]
         except Exception:
             # If fetching fails, continue without image
             pass
-    
+
+    # Set initial title to URL if not provided, will be updated by background task
+    title = payload.title or str(payload.url)
+
     link = Link(
         url=str(payload.url),
-        title=payload.title,
+        title=title,
         notes=payload.notes,
         image_url=image_url,
         collection=collection,
         tags=tags,
+        image_check_status="success" if image_url else "pending",
+        image_checked_at=datetime.now() if image_url else None,
+        link_status="active",  # Assume active until proven otherwise
+        last_checked_at=datetime.now(),
     )
     session.add(link)
     session.flush()
@@ -307,6 +308,7 @@ def list_links(
     has_notes: bool | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    broken: bool | None = None,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ) -> tuple[Sequence[Link], int]:
@@ -397,6 +399,10 @@ def list_links(
         except ValueError:
             pass  # Ignore invalid date format
 
+    # Broken links filter
+    if broken:
+        filters.append(Link.link_status.in_(["broken", "unreachable", "error"]))
+
     if filters:
         query = query.where(*filters)
         count_query = count_query.where(*filters)
@@ -420,7 +426,7 @@ def list_tags(session: Session) -> list[Tag]:
 def get_top_tags(session: Session, limit: int = 5) -> list[Tag]:
     """Get most frequently used tags, ordered by usage count."""
     from sqlalchemy import desc
-    
+
     tag_counts = (
         session.execute(
             select(Tag, func.count(link_tag_table.c.link_id).label('usage_count'))
@@ -459,14 +465,14 @@ def create_tag(session: Session, name: str) -> Tag:
     normalized = _normalize_tag(name)
     if not normalized:
         raise ValueError("Tag name cannot be empty")
-    
+
     # Check if tag already exists
     existing = session.execute(
         select(Tag).where(func.lower(Tag.name) == func.lower(normalized))
     ).scalar_one_or_none()
     if existing:
         raise ValueError(f"Tag '{normalized}' already exists")
-    
+
     tag = Tag(name=normalized, slug="")
     session.add(tag)
     session.flush()
@@ -522,14 +528,14 @@ def create_collection(session: Session, name: str) -> Collection:
     normalized = name.strip()
     if not normalized:
         raise ValueError("Collection name cannot be empty")
-    
+
     # Check if collection already exists
     existing = session.execute(
         select(Collection).where(func.lower(Collection.name) == func.lower(normalized))
     ).scalar_one_or_none()
     if existing:
         raise ValueError(f"Collection '{normalized}' already exists")
-    
+
     collection = Collection(name=normalized, slug="")
     session.add(collection)
     session.flush()
@@ -540,14 +546,14 @@ def update_collection(session: Session, collection: Collection, new_name: str) -
     normalized = new_name.strip()
     if not normalized:
         raise ValueError("Collection name cannot be empty")
-    
+
     # Check if another collection with the same name exists
     existing = session.execute(
         select(Collection).where(func.lower(Collection.name) == func.lower(normalized), Collection.id != collection.id)
     ).scalar_one_or_none()
     if existing:
         raise ValueError(f"Collection '{normalized}' already exists")
-    
+
     collection.name = normalized
     session.flush()
     return collection

@@ -33,23 +33,23 @@ async def fetch_url_metadata(url: str) -> dict[str, Any]:
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             raise ValueError("Invalid URL scheme")
-        
+
         # Prevent SSRF attacks - block private IPs and localhost
         hostname = parsed.hostname
         if not hostname:
             raise ValueError("Invalid hostname")
-        
+
         # Block localhost and private IP ranges
         blocked_hosts = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]
         if hostname.lower() in blocked_hosts:
             raise ValueError("Blocked hostname")
-        
+
         # Block private IP ranges (10.x, 172.16-31.x, 192.168.x)
         if (hostname.startswith("10.") or 
             hostname.startswith("192.168.") or
             any(hostname.startswith(f"172.{i}.") for i in range(16, 32))):
             raise ValueError("Private IP address blocked")
-        
+
         async with httpx.AsyncClient(
             timeout=10,
             follow_redirects=True,
@@ -60,16 +60,16 @@ async def fetch_url_metadata(url: str) -> dict[str, Any]:
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })
             response.raise_for_status()
-            
+
             # Limit response size to prevent memory issues (5MB max)
             if len(response.content) > 5 * 1024 * 1024:
                 raise ValueError("Response too large")
-            
+
             soup = BeautifulSoup(response.text, "html.parser")
-            
+
             # Try to get title from various sources
             title = None
-            
+
             # Try Open Graph title
             og_title = soup.find("meta", property="og:title")
             if og_title and og_title.get("content"):
@@ -77,55 +77,44 @@ async def fetch_url_metadata(url: str) -> dict[str, Any]:
                 # Sanitize: limit length and strip dangerous chars
                 if isinstance(content, str):
                     title = content[:500].strip()
-            
-            # Try Twitter title
-            if not title:
-                twitter_title = soup.find("meta", attrs={"name": "twitter:title"})
-                if twitter_title and twitter_title.get("content"):
-                    content = twitter_title["content"]
-                    if isinstance(content, str):
-                        title = content[:500].strip()
-            
+
             # Try regular title tag
             if not title:
                 title_tag = soup.find("title")
                 if title_tag and title_tag.string:
                     title = str(title_tag.string)[:500].strip()
-            
+
             # Extract domain as a potential tag
             domain = parsed.netloc.replace("www.", "")
             # Sanitize domain - only alphanumeric, dots, and hyphens
             domain = re.sub(r'[^a-zA-Z0-9\.\-]', '', domain)[:100]
-            
-            # Try to extract keywords as tags
-            keywords = []
-            keywords_meta = soup.find("meta", attrs={"name": "keywords"})
-            if keywords_meta and keywords_meta.get("content"):
-                content = keywords_meta.get("content")
+
+            # Try to get image
+            image = None
+            og_image = soup.find("meta", property="og:image")
+            if og_image and og_image.get("content"):
+                content = og_image["content"]
                 if isinstance(content, str):
-                    # Split, sanitize, and limit keywords
-                    raw_keywords = content.split(",")
-                    for kw in raw_keywords[:5]:  # Max 5 keywords
-                        sanitized = kw.strip()[:50]  # Max 50 chars each
-                        # Only alphanumeric, spaces, hyphens
-                        sanitized = re.sub(r'[^a-zA-Z0-9\s\-]', '', sanitized)
-                        if sanitized and len(sanitized) > 2:
-                            keywords.append(sanitized)
-            
+                    image = content.strip()[:1000]  # Limit length
+                    # Make absolute URL if relative
+                    if image and not image.startswith(("http://", "https://")):
+                        from urllib.parse import urljoin
+                        image = urljoin(url, image)
+
             return {
                 "title": title,
                 "domain": domain,
-                "keywords": keywords[:3]  # Limit to 3 keywords
+                "image": image
             }
-            
+
     except Exception as e:
         print(f"Error fetching metadata for {url}: {e}")
         # Return domain as fallback
         try:
             domain = urlparse(url).netloc.replace("www.", "")
-            return {"title": None, "domain": domain, "keywords": []}
+            return {"title": None, "domain": domain, "image": None}
         except Exception:
-            return {"title": None, "domain": None, "keywords": []}
+            return {"title": None, "domain": None, "image": None}
 
 
 async def send_telegram_message(chat_id: int, text: str) -> None:
@@ -249,7 +238,7 @@ async def process_message(message: dict[str, Any]) -> None:
                 })
                 print(f"⚠️  Duplicate URL skipped: {url}")
                 continue
-            
+
             # Fetch metadata from URL
             print(f"🔍 Fetching metadata for: {url}")
             metadata = await fetch_url_metadata(url)
@@ -257,7 +246,7 @@ async def process_message(message: dict[str, Any]) -> None:
             # Determine title
             # Priority: user-provided text > fetched title > None
             user_text = text.replace(url, "").strip() if len(valid_urls) == 1 else None
-            
+
             # Sanitize user-provided text
             if user_text:
                 # Remove any control characters and limit length
@@ -266,16 +255,12 @@ async def process_message(message: dict[str, Any]) -> None:
                 # If empty after sanitization, set to None
                 if not user_text:
                     user_text = None
-            
+
             title = user_text if user_text else metadata.get("title")
 
-            # Collect tags: domain + keywords
+            # Collect tags: keywords only (no auto domain tagging)
             tags = []
-            if metadata.get("domain"):
-                tags.append(metadata["domain"])
-            if metadata.get("keywords"):
-                tags.extend(metadata["keywords"][:2])  # Limit to 2 keywords
-            
+
             # Final sanitization: ensure tags are clean
             tags = [tag for tag in tags if tag and len(tag) > 0][:5]  # Max 5 tags
 
@@ -286,6 +271,7 @@ async def process_message(message: dict[str, Any]) -> None:
                 notes=None,
                 tags=tags,
                 collection=None,
+                image_url=metadata.get("image"),
             )
 
             # Create link in database
