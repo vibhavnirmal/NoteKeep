@@ -186,14 +186,14 @@ async def process_message(message: dict[str, Any]) -> None:
             chat_id, "❌ No valid URL found. Please send a message containing a link."
         )
         return
-    
+
     # Limit number of URLs to prevent abuse
     if len(urls) > 10:
         await send_telegram_message(
             chat_id, "❌ Too many URLs. Please send maximum 10 links at a time."
         )
         return
-    
+
     # Validate all URLs before processing
     valid_urls = []
     for url in urls:
@@ -211,7 +211,7 @@ async def process_message(message: dict[str, Any]) -> None:
             valid_urls.append(url)
         except Exception:
             continue
-    
+
     if not valid_urls:
         await send_telegram_message(
             chat_id, "❌ No valid URLs found. URLs must start with http:// or https://"

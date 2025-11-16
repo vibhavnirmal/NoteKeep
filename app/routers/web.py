@@ -39,9 +39,8 @@ from ..crud import (
     update_tag,
 )
 from ..database import SessionLocal, get_db
-from ..schemas import LinkUpdate
-
-from app.link_preview import fetch_link_metadata
+from ..schemas import LinkCreate, LinkUpdate
+from ..tasks import needs_title_refresh, refresh_link_title_if_placeholder
 
 router = APIRouter()
 
@@ -286,27 +285,19 @@ def update_link_view(
 
 @router.post("/add")
 async def add_link_post(
-    request: Request,
     background_tasks: BackgroundTasks,
     url: str = Form(...),
     title: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    # Create link with URL as title if not provided
-    if not title:
-        title = url
-    link = create_link(db, url=url, title=title)
-    # Add background task to fetch real title
-    background_tasks.add_task(fetch_and_update_title, db, link.id)
-    return RedirectResponse(url="/links", status_code=303)
+    payload = LinkCreate(url=url, title=title or None)
+    link = create_link(db, payload)
+    db.commit()
 
-async def fetch_and_update_title(db: Session, link_id: int):
-    link = get_link(db, link_id)
-    if link:
-        metadata = await fetch_link_metadata(link.url)
-        if metadata.get('title'):
-            link.title = metadata['title']
-            db.commit()
+    if needs_title_refresh(link):
+        background_tasks.add_task(refresh_link_title_if_placeholder, link.id)
+
+    return RedirectResponse(url="/links", status_code=303)
 
 
 
@@ -373,7 +364,6 @@ def add_page(
 def bulk_import_links(request: Request, urls: str = Form(...)):
     """Import multiple links from a textarea input"""
     from ..crud import create_link, get_link_by_url
-    from ..schemas import LinkCreate
     
     lines = urls.strip().split('\n')
     imported_count = 0
@@ -465,7 +455,6 @@ async def bulk_import_csv(request: Request, file: UploadFile):
     import io
 
     from ..crud import create_link
-    from ..schemas import LinkCreate
     
     imported_count = 0
     skipped_count = 0
