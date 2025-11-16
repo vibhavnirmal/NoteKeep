@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -32,7 +33,25 @@ def needs_title_refresh(link: Any) -> bool:
     return title == url
 
 
-async def refresh_link_title_if_placeholder(link_id: int) -> None:
+def _fetch_title_sync(url: str) -> str:
+    try:
+        metadata = asyncio.run(fetch_link_metadata(url))
+    except RuntimeError:
+        # Already inside an event loop; fall back to creating a new loop manually
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            metadata = loop.run_until_complete(fetch_link_metadata(url))
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+
+    if not metadata:
+        return ""
+    return _normalize_value(_coerce_to_str(metadata.get("title")))
+
+
+def refresh_link_title_if_placeholder(link_id: int) -> None:
     """Fetch the latest metadata and update the title if it is still a placeholder."""
     session: Session = SessionLocal()
     try:
@@ -40,8 +59,7 @@ async def refresh_link_title_if_placeholder(link_id: int) -> None:
         if not link or not needs_title_refresh(link):
             return
 
-        metadata = await fetch_link_metadata(link.url)
-        new_title = _normalize_value(_coerce_to_str(metadata.get("title"))) if metadata else ""
+        new_title = _fetch_title_sync(link.url)
         if not new_title or new_title == link.title:
             return
 
