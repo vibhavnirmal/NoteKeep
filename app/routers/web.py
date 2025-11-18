@@ -125,11 +125,13 @@ def group_links_by_date(links):
             month_year = link_date.strftime('%B %Y')
             groups[month_year].append(link)
 
-    # Return in order
+    # Return in order, with items within each group sorted by created_at (newest first)
     ordered_groups = []
     for key in ['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month']:
         if key in groups:
-            ordered_groups.append((key, groups[key]))
+            # Sort items within group by created_at descending (newest first)
+            sorted_items = sorted(groups[key], key=lambda x: x.created_at, reverse=True)
+            ordered_groups.append((key, sorted_items))
 
     # Add older months in reverse chronological order
     excluded = ['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month']
@@ -139,7 +141,9 @@ def group_links_by_date(links):
         reverse=True
     )
     for key in other_keys:
-        ordered_groups.append((key, groups[key]))
+        # Sort items within group by created_at descending (newest first)
+        sorted_items = sorted(groups[key], key=lambda x: x.created_at, reverse=True)
+        ordered_groups.append((key, sorted_items))
 
     return ordered_groups
 
