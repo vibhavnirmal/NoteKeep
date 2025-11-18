@@ -30,6 +30,8 @@ from ..crud import (
     get_link,
     get_tag,
     has_broken_links,
+    list_all_collections,
+    list_all_tags,
     list_collections,
     list_collections_with_counts,
     list_links,
@@ -152,8 +154,8 @@ def link_detail_view(request: Request, link_id: int):
         link = get_link(session, link_id)
         if not link:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
-        collections = list_collections(session)
-        available_tag_entities = list_tags(session)
+        collections = list_all_collections(session)
+        available_tag_entities = list_all_tags(session)
         available_tags = [
             {
                 "name": tag.name,
@@ -211,7 +213,7 @@ def list_links_view(
             page_size=page_size,
         )
         tags_list = list_tags(session)
-        collections_list = list_collections(session)
+        collections_list = list_all_collections(session)
         collection_summaries = list_collections_with_counts(session)
         top_collection_summaries = sorted(
             collection_summaries,

@@ -428,16 +428,20 @@ def has_broken_links(session: Session) -> bool:
     return count > 0
 
 
-def list_tags(session: Session) -> list[Tag]:
-    """List all tags that have at least one link assigned."""
-    return list(
-        session.execute(
-            select(Tag)
-            .join(link_tag_table, Tag.id == link_tag_table.c.tag_id)
-            .group_by(Tag.id)
-            .order_by(Tag.name)
-        ).scalars()
+def list_tags(session: Session) -> Sequence[Tag]:
+    """Return a list of all tags that are associated with at least one link."""
+    return (
+        session.query(Tag)
+        .join(link_tag_table)
+        .group_by(Tag.id)
+        .order_by(func.lower(Tag.name))
+        .all()
     )
+
+
+def list_all_tags(session: Session) -> Sequence[Tag]:
+    """Return a list of all tags, regardless of whether they are used."""
+    return session.query(Tag).order_by(func.lower(Tag.name)).all()
 
 
 def get_top_tags(session: Session, limit: int = 5) -> list[Tag]:
@@ -457,28 +461,34 @@ def get_top_tags(session: Session, limit: int = 5) -> list[Tag]:
     return [tag for tag, count in tag_counts]
 
 
-def list_collections(session: Session) -> list[Collection]:
-    """List all collections that have at least one link assigned."""
-    return list(
+def list_collections(session: Session) -> Sequence[Collection]:
+    """Return a list of all collections that are associated with at least one link."""
+    return (
+        session.query(Collection)
+        .join(Link)
+        .group_by(Collection.id)
+        .order_by(func.lower(Collection.name))
+        .all()
+    )
+
+
+def list_all_collections(session: Session) -> Sequence[Collection]:
+    """Return a list of all collections."""
+    return session.query(Collection).order_by(func.lower(Collection.name)).all()
+
+
+def list_collections_with_counts(session: Session) -> Sequence[tuple[Collection, int]]:
+    """Return a list of all collections with their link counts."""
+    collection_counts = (
         session.execute(
-            select(Collection)
-            .join(Link, Collection.id == Link.collection_id)
+            select(Collection, func.count(Link.id).label("count"))
+            .outerjoin(Link, Collection.id == Link.collection_id)
             .group_by(Collection.id)
             .order_by(Collection.name)
-        ).scalars()
-    )
-
-
-def export_all_links(session: Session) -> list[Link]:
-    return list(
-        session.execute(
-            select(Link)
-            .options(joinedload(Link.tags), joinedload(Link.collection))
-            .order_by(Link.created_at.desc())
         )
-        .unique()
-        .scalars()
+        .all()
     )
+    return [(collection, count) for collection, count in collection_counts]
 
 
 # Tag management functions
@@ -530,8 +540,8 @@ def delete_tag(session: Session, tag: Tag) -> None:
     session.flush()
 
 
-def list_tags_with_counts(session: Session) -> list[tuple[Tag, int]]:
-    """List all tags with their link counts"""
+def list_tags_with_counts(session: Session) -> Sequence[tuple[Tag, int]]:
+    """Return a list of all tags with their link counts."""
     tag_counts = (
         session.execute(
             select(Tag, func.count(link_tag_table.c.link_id).label("count"))
@@ -599,15 +609,3 @@ def delete_collection(session: Session, collection: Collection) -> None:
     session.flush()
 
 
-def list_collections_with_counts(session: Session) -> list[tuple[Collection, int]]:
-    """List all collections with their link counts"""
-    collection_counts = (
-        session.execute(
-            select(Collection, func.count(Link.id).label("count"))
-            .outerjoin(Link, Collection.id == Link.collection_id)
-            .group_by(Collection.id)
-            .order_by(Collection.name)
-        )
-        .all()
-    )
-    return [(collection, count) for collection, count in collection_counts]
