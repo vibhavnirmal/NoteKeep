@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from .config import get_settings
 from .crud import create_link, create_note, get_link_by_url
 from .database import SessionLocal
+from .image_utils import compress_image, validate_image
 from .schemas import LinkCreate, NoteCreate
 
 settings = get_settings()
@@ -376,6 +377,45 @@ async def process_message(message: dict[str, Any]) -> None:
         )
     finally:
         session.close()
+
+    # Handle photo messages
+    if "photo" in message and message["photo"]:
+        # Get the highest resolution photo
+        photo_sizes = message["photo"]
+        largest_photo = max(photo_sizes, key=lambda p: p.get("file_size", 0))
+        file_id = largest_photo["file_id"]
+        # Get file path from Telegram API
+        async with httpx.AsyncClient() as client:
+            file_resp = await client.get(f"{TELEGRAM_API_URL}/getFile", params={"file_id": file_id})
+            file_resp.raise_for_status()
+            file_path = file_resp.json()["result"]["file_path"]
+            # Download the file
+            file_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
+            img_resp = await client.get(file_url)
+            img_resp.raise_for_status()
+            image_data = img_resp.content
+        # Compress and encode image
+        image_url = compress_image(image_data, max_size_kb=100)
+        # Save note with image
+        session = SessionLocal()
+        try:
+            note_payload = NoteCreate(
+                title="FromTelegram",
+                content="FromTelegram",
+                tags=[],
+                collection=None,
+                image_url=image_url,
+            )
+            create_note(session=session, note_data=note_payload)
+            session.commit()
+            await send_telegram_message(chat_id, "✅ Image note saved! 📝")
+        except Exception as e:
+            session.rollback()
+            print(f"Error saving image note: {e}")
+            await send_telegram_message(chat_id, "❌ Error saving image note.")
+        finally:
+            session.close()
+        return
 
 
 async def poll_telegram() -> None:
