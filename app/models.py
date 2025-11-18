@@ -33,6 +33,13 @@ link_tag_table = Table(
     Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
 )
 
+note_tag_table = Table(
+    "note_tags",
+    Base.metadata,
+    Column("note_id", ForeignKey("notes.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 class Collection(Base, TimestampMixin):
     __tablename__ = "collections"
@@ -42,6 +49,7 @@ class Collection(Base, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
     links: Mapped[list[Link]] = relationship("Link", back_populates="collection", lazy="selectin")
+    notes: Mapped[list[Note]] = relationship("Note", back_populates="collection", lazy="selectin")
 
 
 class Tag(Base, TimestampMixin):
@@ -55,6 +63,9 @@ class Tag(Base, TimestampMixin):
 
     links: Mapped[list[Link]] = relationship(
         "Link", secondary=link_tag_table, back_populates="tags", lazy="selectin"
+    )
+    notes: Mapped[list[Note]] = relationship(
+        "Note", secondary=note_tag_table, back_populates="tags", lazy="selectin"
     )
 
 
@@ -85,6 +96,22 @@ class Link(Base, TimestampMixin):
 
     tags: Mapped[list[Tag]] = relationship(
         "Tag", secondary=link_tag_table, back_populates="links", lazy="selectin"
+    )
+
+
+class Note(Base, TimestampMixin):
+    __tablename__ = "notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    collection_id: Mapped[int | None] = mapped_column(ForeignKey("collections.id"))
+    collection: Mapped[Collection | None] = relationship("Collection", back_populates="notes")
+
+    tags: Mapped[list[Tag]] = relationship(
+        "Tag", secondary=note_tag_table, back_populates="notes", lazy="selectin"
     )
 
 

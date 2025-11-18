@@ -8,9 +8,9 @@ import httpx
 from bs4 import BeautifulSoup
 
 from .config import get_settings
-from .crud import create_link, get_link_by_url
+from .crud import create_link, create_note, get_link_by_url
 from .database import SessionLocal
-from .schemas import LinkCreate
+from .schemas import LinkCreate, NoteCreate
 
 settings = get_settings()
 TELEGRAM_BOT_TOKEN = settings.telegram_bot_token
@@ -169,11 +169,14 @@ async def process_message(message: dict[str, Any]) -> None:
     if text.startswith("/start"):
         welcome_message = (
             "👋 <b>Welcome to NoteKeep Bot!</b>\n\n"
-            "Send me any link and I'll:\n"
+            "Send me a link and I'll:\n"
             "• 📄 Automatically fetch the page title\n"
             "• 🏷️ Extract relevant tags\n"
             "• 💾 Save it to your inbox\n\n"
-            "Just paste a URL and I'll take care of the rest! 🔗"
+            "Send me any text and I'll:\n"
+            "• 📝 Create a note titled 'FromTelegram'\n"
+            "• 💾 Save your message for later\n\n"
+            "Just send a URL or text and I'll take care of the rest! �"
         )
         await send_telegram_message(chat_id, welcome_message)
         return
@@ -182,9 +185,35 @@ async def process_message(message: dict[str, Any]) -> None:
     urls = extract_urls(text)
 
     if not urls:
-        await send_telegram_message(
-            chat_id, "❌ No valid URL found. Please send a message containing a link."
-        )
+        # No URLs found - create a note instead
+        session = SessionLocal()
+        try:
+            # Sanitize text
+            sanitized_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text).strip()
+            
+            # Create note with title "FromTelegram"
+            note_payload = NoteCreate(
+                title="FromTelegram",
+                content=sanitized_text,
+                tags=[],
+                collection=None,
+                image_url=None,
+            )
+            
+            create_note(session=session, note_data=note_payload)
+            session.commit()
+            
+            await send_telegram_message(
+                chat_id, "✅ Note saved! 📝"
+            )
+        except Exception as e:
+            session.rollback()
+            print(f"Error saving note: {e}")
+            await send_telegram_message(
+                chat_id, "❌ Sorry, there was an error saving your note. Please try again."
+            )
+        finally:
+            session.close()
         return
 
     # Limit number of URLs to prevent abuse

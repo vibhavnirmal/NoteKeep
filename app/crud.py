@@ -9,8 +9,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Collection, Link, Tag, link_tag_table
-from .schemas import LinkCreate, LinkUpdate
+from .models import Collection, Link, Tag, link_tag_table, Note
+from .schemas import LinkCreate, LinkUpdate, NoteCreate, NoteUpdate
 
 DEFAULT_PAGE_SIZE = 25
 
@@ -608,4 +608,163 @@ def delete_collection(session: Session, collection: Collection) -> None:
     session.delete(collection)
     session.flush()
 
+
+# Note CRUD functions
+def create_note(session: Session, note_data: NoteCreate) -> Note:
+    """Create a new note with tags and collection"""
+    # Create note
+    note = Note(
+        title=note_data.title,
+        content=note_data.content,
+        image_url=note_data.image_url,
+    )
+
+    # Handle collection
+    if note_data.collection:
+        collection_name = note_data.collection.strip()
+        if collection_name:
+            collection = session.execute(
+                select(Collection).where(func.lower(Collection.name) == func.lower(collection_name))
+            ).scalar_one_or_none()
+            if not collection:
+                collection = Collection(name=collection_name, slug="")
+                session.add(collection)
+                session.flush()
+            note.collection = collection
+
+    # Handle tags
+    if note_data.tags:
+        for tag_name in note_data.tags:
+            normalized = _normalize_tag(tag_name)
+            if not normalized:
+                continue
+            tag = session.execute(
+                select(Tag).where(func.lower(Tag.name) == func.lower(normalized))
+            ).scalar_one_or_none()
+            if not tag:
+                tag = Tag(name=normalized, slug="", icon=None, color=None)
+                session.add(tag)
+                session.flush()
+            note.tags.append(tag)
+
+    session.add(note)
+    session.flush()
+    return note
+
+
+def get_note(session: Session, note_id: int) -> Note | None:
+    """Get a single note by ID"""
+    return session.execute(select(Note).where(Note.id == note_id)).scalar_one_or_none()
+
+
+def list_notes(
+    session: Session,
+    search: str | None = None,
+    tag: str | None = None,
+    tags: list[str] | None = None,
+    collection: str | None = None,
+    collections: list[str] | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    page: int = 1,
+    page_size: int = DEFAULT_PAGE_SIZE,
+) -> tuple[Sequence[Note], int]:
+    """List notes with filtering and pagination"""
+    query = select(Note).options(joinedload(Note.tags), joinedload(Note.collection))
+
+    # Search filter
+    if search:
+        query = query.where(
+            (Note.title.ilike(f"%{search}%")) | (Note.content.ilike(f"%{search}%"))
+        )
+
+    # Tag filters
+    if tag:
+        query = query.join(Note.tags).where(Tag.slug == tag)
+    if tags:
+        for tag_slug in tags:
+            query = query.join(Note.tags).where(Tag.slug == tag_slug)
+
+    # Collection filters
+    if collection:
+        query = query.join(Note.collection).where(Collection.slug == collection)
+    if collections:
+        query = query.join(Note.collection).where(Collection.slug.in_(collections))
+
+    # Date range filters
+    if date_from:
+        try:
+            from_date = datetime.fromisoformat(date_from)
+            query = query.where(Note.created_at >= from_date)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            to_date = datetime.fromisoformat(date_to)
+            query = query.where(Note.created_at <= to_date)
+        except ValueError:
+            pass
+
+    # Count total
+    count_query = select(func.count()).select_from(query.subquery())
+    total = session.execute(count_query).scalar() or 0
+
+    # Apply pagination
+    query = query.order_by(Note.created_at.desc())
+    if page_size > 0:
+        query = query.limit(page_size).offset((page - 1) * page_size)
+
+    notes = session.execute(query).scalars().unique().all()
+    return notes, total
+
+
+def update_note(session: Session, note: Note, note_data: NoteUpdate) -> Note:
+    """Update an existing note"""
+    # Update basic fields
+    if note_data.title is not None:
+        note.title = note_data.title
+    if note_data.content is not None:
+        note.content = note_data.content
+    if note_data.image_url is not None:
+        note.image_url = note_data.image_url
+
+    # Update collection
+    if note_data.collection is not None:
+        if note_data.collection.strip():
+            collection_name = note_data.collection.strip()
+            collection = session.execute(
+                select(Collection).where(func.lower(Collection.name) == func.lower(collection_name))
+            ).scalar_one_or_none()
+            if not collection:
+                collection = Collection(name=collection_name, slug="")
+                session.add(collection)
+                session.flush()
+            note.collection = collection
+        else:
+            note.collection = None
+
+    # Update tags
+    if note_data.tags is not None:
+        note.tags.clear()
+        for tag_name in note_data.tags:
+            normalized = _normalize_tag(tag_name)
+            if not normalized:
+                continue
+            tag = session.execute(
+                select(Tag).where(func.lower(Tag.name) == func.lower(normalized))
+            ).scalar_one_or_none()
+            if not tag:
+                tag = Tag(name=normalized, slug="", icon=None, color=None)
+                session.add(tag)
+                session.flush()
+            note.tags.append(tag)
+
+    session.flush()
+    return note
+
+
+def delete_note(session: Session, note: Note) -> None:
+    """Delete a note"""
+    session.delete(note)
+    session.flush()
 

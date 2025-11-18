@@ -82,7 +82,7 @@
                 
                 <!-- Mobile Settings Icon -->
                 <div class="lg:hidden flex items-center gap-2">
-                    <a href="/links" class="flex items-center justify-center w-9 h-9 rounded-lg transition-all {% if request.url.path == '/links' or request.url.path == '/' %}bg-indigo-50 text-indigo-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+                    <a href="/links" class="flex items-center justify-center w-9 h-9 rounded-lg transition-all {% if request.url.path == '/links' or request.url.path == '/' or request.url.path.startswith('/notes') %}bg-indigo-50 text-indigo-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
                         <i data-lucide="home" class="w-5 h-5"></i>
                     </a>
                     <a href="/settings" class="flex items-center justify-center w-9 h-9 rounded-lg transition-all {% if request.url.path == '/settings' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
@@ -97,9 +97,9 @@
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             Quick Add
                         </a>
-                        <a href="/links" class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-medium transition-all {% if request.url.path == '/links' or request.url.path == '/' %}bg-indigo-50 text-indigo-600{% else %}text-gray-700 hover:bg-indigo-50 hover:text-indigo-600{% endif %}">
+                        <a href="/links" class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-medium transition-all {% if request.url.path == '/links' or request.url.path == '/' or request.url.path.startswith('/notes') %}bg-indigo-50 text-indigo-600{% else %}text-gray-700 hover:bg-indigo-50 hover:text-indigo-600{% endif %}">
                             <i data-lucide="link" class="w-4 h-4"></i>
-                            All Links
+                            All Items
                         </a>
                     </nav>
                     <div class="w-px h-6 bg-gray-300"></div>

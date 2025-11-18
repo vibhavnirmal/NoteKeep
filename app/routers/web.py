@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import (
     APIRouter,
+    File,
     Form,
     HTTPException,
     Query,
@@ -21,13 +22,16 @@ from sqlalchemy.orm import Session
 from ..crud import (
     create_collection,
     create_link,
+    create_note,
     create_tag,
     delete_collection,
     delete_link,
+    delete_note,
     delete_tag,
     get_collection,
     get_default_tags,
     get_link,
+    get_note,
     get_tag,
     has_broken_links,
     list_all_collections,
@@ -35,14 +39,17 @@ from ..crud import (
     list_collections,
     list_collections_with_counts,
     list_links,
+    list_notes,
     list_tags,
     list_tags_with_counts,
     update_collection,
     update_link,
+    update_note,
     update_tag,
 )
 from ..database import SessionLocal, get_db
-from ..schemas import LinkCreate, LinkUpdate
+from ..image_utils import compress_image, validate_image
+from ..schemas import LinkCreate, LinkUpdate, NoteCreate, NoteUpdate
 from ..tasks import needs_title_refresh, refresh_link_title_if_placeholder
 
 router = APIRouter()
@@ -198,7 +205,7 @@ def list_links_view(
 ):
     session = _get_session()
     try:
-        links, total = list_links(
+        links, total_links = list_links(
             session,
             search=search,
             tag=tag,
@@ -212,6 +219,21 @@ def list_links_view(
             page=page,
             page_size=page_size,
         )
+        
+        # Also fetch notes with same filters
+        notes, total_notes = list_notes(
+            session,
+            search=search,
+            tag=tag,
+            tags=tags,
+            collection=collection,
+            collections=collections,
+            date_from=date_from,
+            date_to=date_to,
+            page=page,
+            page_size=page_size,
+        )
+        
         tags_list = list_tags(session)
         collections_list = list_all_collections(session)
         collection_summaries = list_collections_with_counts(session)
@@ -221,8 +243,9 @@ def list_links_view(
             reverse=True,
         )[:6]
 
-        # Group links by date
-        grouped_links = group_links_by_date(links)
+        # Combine and group links and notes by date
+        combined_items = list(links) + list(notes)
+        grouped_items = group_links_by_date(combined_items)
 
         # Check if there are any broken links
         any_broken_links = has_broken_links(session)
@@ -233,8 +256,9 @@ def list_links_view(
         {
             "request": request,
             "links": links,
-            "grouped_links": grouped_links,
-            "total": total,
+            "notes": notes,
+            "grouped_links": grouped_items,  # Contains both links and notes
+            "total": total_links + total_notes,
             "page": page,
             "page_size": page_size,
             "tags": tags_list,
@@ -686,5 +710,182 @@ def delete_collection_route(request: Request, collection_id: int):
         delete_collection(session, collection)
         session.commit()
         return RedirectResponse(url="/settings?success=Collection+deleted+successfully#collections", status_code=status.HTTP_303_SEE_OTHER)
+    finally:
+        session.close()
+
+
+# ============================================================================
+# Notes Routes
+# ============================================================================
+
+
+
+@router.get("/notes/{note_id}")
+def note_detail_page(request: Request, note_id: int, updated: bool = False):
+    """Note detail/edit page"""
+    session = _get_session()
+    try:
+        note = get_note(session, note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+
+        all_collections = list_all_collections(session)
+        available_tag_entities = list_all_tags(session)
+        available_tags = [
+            {
+                "name": tag.name,
+                "slug": tag.slug,
+                "icon": tag.icon,
+                "color": tag.color,
+            }
+            for tag in available_tag_entities
+            if tag.name
+        ]
+        available_tags.sort(key=lambda item: item["name"].lower())
+
+        return templates.TemplateResponse(
+            "note_detail.html",
+            {
+                "request": request,
+                "note": note,
+                "updated": updated,
+                "collections": all_collections,
+                "available_tags": available_tags,
+            },
+        )
+    finally:
+        session.close()
+
+
+@router.post("/notes/create")
+async def create_note_route(
+    request: Request,
+    title: str = Form(...),
+    content: str = Form(...),
+    tags: str = Form(""),
+    collection: str = Form(""),
+    image: UploadFile | None = File(None),
+):
+    """Create a new note"""
+    session = _get_session()
+    try:
+        # Parse tags from comma-separated string
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+        # Handle image upload
+        image_url = None
+        if image and image.size > 0:
+            try:
+                image_data = await image.read()
+                if validate_image(image_data):
+                    image_url = compress_image(image_data, max_size_kb=100)
+            except Exception as e:
+                return RedirectResponse(
+                    url=f"/add?error=Failed+to+process+image:+{str(e)}",
+                    status_code=status.HTTP_303_SEE_OTHER,
+                )
+
+        note_data = NoteCreate(
+            title=title,
+            content=content,
+            tags=tag_list,
+            collection=collection if collection.strip() else None,
+            image_url=image_url,
+        )
+
+        create_note(session, note_data)
+        session.commit()
+
+        return RedirectResponse(
+            url="/links?success=Note+created+successfully",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except ValueError as e:
+        session.rollback()
+        return RedirectResponse(
+            url=f"/add?error={str(e)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    finally:
+        session.close()
+
+
+@router.post("/notes/{note_id}/update")
+async def update_note_route(
+    request: Request,
+    note_id: int,
+    title: str = Form(...),
+    content: str = Form(...),
+    tags: str = Form(""),
+    collection: str = Form(""),
+    image: UploadFile | None = File(None),
+    remove_image: bool = Form(False),
+):
+    """Update an existing note"""
+    session = _get_session()
+    try:
+        note = get_note(session, note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+
+        # Parse tags from comma-separated string
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+        # Handle image upload
+        image_url = note.image_url  # Keep existing image by default
+        if remove_image:
+            image_url = None
+        elif image and image.size > 0:
+            try:
+                image_data = await image.read()
+                if validate_image(image_data):
+                    image_url = compress_image(image_data, max_size_kb=100)
+            except Exception as e:
+                return RedirectResponse(
+                    url=f"/notes/{note_id}?error=Failed+to+process+image:+{str(e)}",
+                    status_code=status.HTTP_303_SEE_OTHER,
+                )
+
+        note_data = NoteUpdate(
+            title=title,
+            content=content,
+            tags=tag_list,
+            collection=collection if collection.strip() else None,
+            image_url=image_url,
+        )
+
+        update_note(session, note, note_data)
+        session.commit()
+
+        return RedirectResponse(
+            url="/links?success=Note+updated+successfully",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except ValueError as e:
+        session.rollback()
+        return RedirectResponse(
+            url=f"/notes/{note_id}?error={str(e)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    finally:
+        session.close()
+
+
+@router.post("/notes/{note_id}/delete")
+def delete_note_route(request: Request, note_id: int):
+    """Delete a note"""
+    session = _get_session()
+    try:
+        note = get_note(session, note_id)
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+
+        delete_note(session, note)
+        session.commit()
+
+        return RedirectResponse(
+            url="/links?success=Note+deleted+successfully",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     finally:
         session.close()

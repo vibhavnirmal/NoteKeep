@@ -25,6 +25,11 @@
       class="add-tab-button py-2 sm:py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-xs sm:text-sm">
       Bulk Import
     </button>
+    <button onclick="switchAddTab('note')" data-add-tab="note"
+      class="add-tab-button py-2 sm:py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-xs sm:text-sm">
+      <i data-lucide="file-text" class="w-4 h-4 inline-block mr-1"></i>
+      Personal Note
+    </button>
   </nav>
 </div>
 
@@ -121,6 +126,85 @@
   </div>
 </div>
 
+<!-- Note Tab -->
+<div id="note-tab" class="add-tab-content hidden">
+  <div class="bg-white border border-gray-200 rounded p-3 sm:p-4">
+    <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-2 sm:mb-3">Create Personal Note</h3>
+    <p class="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+      Create a standalone note without a URL - perfect for ideas, thoughts, and reminders.
+    </p>
+
+    <form action="/notes/create" method="post" enctype="multipart/form-data" class="space-y-4">
+      <!-- Title -->
+      <div>
+        <label for="note-title" class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
+          Title <span class="text-red-500">*</span>
+        </label>
+        <input type="text" id="note-title" name="title" required
+          placeholder="My Important Note"
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+      </div>
+
+      <!-- Content -->
+      <div>
+        <label for="note-content" class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
+          Content <span class="text-red-500">*</span>
+        </label>
+        <textarea id="note-content" name="content" rows="8" required
+          placeholder="Write your note here...&#10;&#10;You can write as much as you need!"
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y font-mono"></textarea>
+      </div>
+
+      <!-- Image Upload -->
+      <div>
+        <label for="note-image" class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
+          Image (optional)
+        </label>
+        <input type="file" id="note-image" name="image" accept="image/*"
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100" />
+        <p class="text-xs text-gray-500 mt-1">Image will be compressed to under 100KB</p>
+        <div id="note-image-preview" class="mt-2 hidden">
+          <img id="note-preview-img" src="" alt="Preview" class="max-w-full max-h-48 rounded border border-gray-200" />
+          <button type="button" onclick="clearNoteImage()" class="mt-1 text-xs text-red-600 hover:text-red-800">Remove image</button>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label for="note-tags" class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
+          Tags (optional)
+        </label>
+        <input type="text" id="note-tags" name="tags"
+          placeholder="idea, personal, important"
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+        <p class="text-xs text-gray-500 mt-1">Separate tags with commas</p>
+      </div>
+
+      <!-- Collection -->
+      <div>
+        <label for="note-collection" class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
+          Collection (optional)
+        </label>
+        <input type="text" id="note-collection" name="collection"
+          placeholder="Personal, Work, Ideas..."
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+      </div>
+
+      <!-- Submit Button -->
+      <div class="flex items-center gap-3">
+        <button type="submit"
+          class="px-5 py-2.5 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          Create Note
+        </button>
+        <a href="/links" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+          View all items
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   // client side form validation
   document.getElementById('add-form').addEventListener('submit', (e) => {
@@ -169,6 +253,29 @@
       switchAddTab('bulk');
     }
   });
+
+  // Image preview for note creation
+  document.getElementById('note-image')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('note-image-preview');
+    const previewImg = document.getElementById('note-preview-img');
+    
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        preview.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.classList.add('hidden');
+    }
+  });
+
+  function clearNoteImage() {
+    document.getElementById('note-image').value = '';
+    document.getElementById('note-image-preview').classList.add('hidden');
+  }
 </script>
 {% endblock %}
 {% block extra_scripts %}

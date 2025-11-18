@@ -120,3 +120,60 @@ class PaginatedLinks(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# Note schemas
+class NoteBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    content: str = Field(..., min_length=1, max_length=50000)
+    image_url: str | None = Field(None, max_length=500)
+
+
+class NoteCreate(NoteBase):
+    tags: list[str] = Field(default_factory=list, max_length=10)
+    collection: str | None = Field(None, max_length=100)
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: list[str]) -> list[str]:
+        """Validate and sanitize tag names"""
+        if not v:
+            return []
+        # Limit number of tags
+        if len(v) > 10:
+            raise ValueError("Maximum 10 tags allowed")
+        # Validate each tag
+        sanitized = []
+        for tag in v:
+            if not isinstance(tag, str):
+                continue
+            # Strip and limit length
+            clean_tag = tag.strip()[:100]
+            if clean_tag:
+                sanitized.append(clean_tag)
+        return sanitized
+
+
+class NoteUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=255)
+    content: str | None = Field(None, min_length=1, max_length=50000)
+    image_url: str | None = None
+    tags: list[str] | None = None
+    collection: str | None = None
+
+
+class NoteRead(NoteBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    tags: list[TagRead]
+    collection: CollectionRead | None
+
+
+class PaginatedNotes(BaseModel):
+    items: list[NoteRead]
+    total: int
+    page: int
+    page_size: int
