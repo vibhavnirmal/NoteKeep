@@ -431,15 +431,57 @@
       e.preventDefault();
       noteActiveSuggestionIndex = Math.max(noteActiveSuggestionIndex - 1, -1);
       updateNoteActiveSuggestion(suggestions);
-    } else if (e.key === 'Enter' && noteActiveSuggestionIndex >= 0) {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      suggestions[noteActiveSuggestionIndex]?.click();
+      if (noteActiveSuggestionIndex >= 0) {
+        // Select highlighted suggestion
+        suggestions[noteActiveSuggestionIndex]?.click();
+      } else {
+        // Create new tag from input value
+        const inputValue = noteTagSearch.value.trim();
+        if (inputValue && selectedNoteTags.length < MAX_TAGS) {
+          // Check if tag already selected
+          const alreadySelected = selectedNoteTags.find(t => 
+            t.name.toLowerCase() === inputValue.toLowerCase()
+          );
+          if (!alreadySelected) {
+            // Create slug from name
+            const slug = inputValue.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const newTag = {
+              name: inputValue,
+              slug: slug,
+              icon: null,
+              color: null
+            };
+            addNoteTag(newTag);
+          }
+        }
+      }
     } else if (e.key === 'Escape') {
       noteTagDropdown.classList.add('hidden');
       noteActiveSuggestionIndex = -1;
     } else if (e.key === 'Tab') {
       noteTagDropdown.classList.add('hidden');
       noteActiveSuggestionIndex = -1;
+    } else if (e.key === ',') {
+      // Allow comma to add tag as well
+      e.preventDefault();
+      const inputValue = noteTagSearch.value.trim();
+      if (inputValue && selectedNoteTags.length < MAX_TAGS) {
+        const alreadySelected = selectedNoteTags.find(t => 
+          t.name.toLowerCase() === inputValue.toLowerCase()
+        );
+        if (!alreadySelected) {
+          const slug = inputValue.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const newTag = {
+            name: inputValue,
+            slug: slug,
+            icon: null,
+            color: null
+          };
+          addNoteTag(newTag);
+        }
+      }
     }
   });
 
