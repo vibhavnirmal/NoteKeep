@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from ..crud import (
     create_link,
     delete_link,
-    export_all_links,
+    # export_all_links,
     get_link,
     get_link_by_url,
     list_collections,
@@ -156,7 +156,8 @@ def api_export_links(
     *,
     session: SessionDep,
 ) -> list[LinkRead]:
-    links = export_all_links(session)
+    # links = export_all_links(session)
+    links = list_links(session, page_size=-1)[0]  # Use list_links to get all
     return [LinkRead.model_validate(row) for row in links]
 
 
