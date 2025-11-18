@@ -171,13 +171,31 @@
 
       <!-- Tags -->
       <div>
-        <label for="note-tags" class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
+        <label class="block text-xs sm:text-sm font-medium text-gray-900 mb-1.5">
           Tags (optional)
         </label>
-        <input type="text" id="note-tags" name="tags"
-          placeholder="idea, personal, important"
-          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
-        <p class="text-xs text-gray-500 mt-1">Separate tags with commas</p>
+        
+        <!-- Hidden input to store selected tag slugs -->
+        <input type="hidden" id="note-tags-input" name="tags" value="" />
+        
+        <!-- Selected tags display -->
+        <div id="note-selected-tags" class="flex flex-wrap gap-2 mb-2"></div>
+        
+        <!-- Tag combobox -->
+        <div class="relative">
+          <input
+            type="text"
+            id="note-tag-search"
+            placeholder="Type to search tags..."
+            autocomplete="off"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
+          <div id="note-tag-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            <div id="note-tag-suggestions" class="py-1"></div>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Maximum 4 tags</p>
+        <p id="note-tag-warning" class="text-xs text-red-600 mt-1 hidden">You can only add up to 4 tags</p>
       </div>
 
       <!-- Collection -->
@@ -276,6 +294,175 @@
     document.getElementById('note-image').value = '';
     document.getElementById('note-image-preview').classList.add('hidden');
   }
+
+  // Tag combobox for note creation
+  const availableTags = {{ available_tags | tojson }};
+  const selectedNoteTags = [];
+  const MAX_TAGS = 4;
+
+  const noteTagSearch = document.getElementById('note-tag-search');
+  const noteTagDropdown = document.getElementById('note-tag-dropdown');
+  const noteTagSuggestions = document.getElementById('note-tag-suggestions');
+  const noteSelectedTagsContainer = document.getElementById('note-selected-tags');
+  const noteTagsInput = document.getElementById('note-tags-input');
+  const noteTagWarning = document.getElementById('note-tag-warning');
+
+  let noteActiveSuggestionIndex = -1;
+
+  function renderNoteSelectedTags() {
+    noteSelectedTagsContainer.innerHTML = selectedNoteTags.map(tag => {
+      const iconHtml = tag.icon ? `<i data-lucide="${tag.icon}" class="w-3 h-3"></i>` : '';
+      const colorClass = tag.color ? `bg-${tag.color}-100 text-${tag.color}-700 border-${tag.color}-200` : 'bg-gray-100 text-gray-700 border-gray-200';
+      return `
+        <span class="inline-flex items-center gap-1 px-2 py-1 ${colorClass} border rounded text-xs">
+          ${iconHtml}
+          <span>${tag.name}</span>
+          <button type="button" onclick="removeNoteTag('${tag.slug}')" class="ml-1 hover:text-red-600">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        </span>
+      `;
+    }).join('');
+    
+    // Update hidden input
+    noteTagsInput.value = selectedNoteTags.map(t => t.slug).join(',');
+    
+    // Reinitialize lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Show/hide warning
+    if (selectedNoteTags.length >= MAX_TAGS) {
+      noteTagWarning.classList.remove('hidden');
+      noteTagSearch.disabled = true;
+      noteTagSearch.placeholder = 'Maximum tags reached';
+    } else {
+      noteTagWarning.classList.add('hidden');
+      noteTagSearch.disabled = false;
+      noteTagSearch.placeholder = 'Type to search tags...';
+    }
+  }
+
+  function removeNoteTag(slug) {
+    const index = selectedNoteTags.findIndex(t => t.slug === slug);
+    if (index > -1) {
+      selectedNoteTags.splice(index, 1);
+      renderNoteSelectedTags();
+    }
+  }
+
+  function addNoteTag(tag) {
+    if (selectedNoteTags.length >= MAX_TAGS) {
+      return;
+    }
+    if (!selectedNoteTags.find(t => t.slug === tag.slug)) {
+      selectedNoteTags.push(tag);
+      renderNoteSelectedTags();
+      noteTagSearch.value = '';
+      renderNoteSuggestions('');
+    }
+  }
+
+  function renderNoteSuggestions(query) {
+    const lowerQuery = query.toLowerCase();
+    const filtered = availableTags.filter(tag => 
+      tag.name.toLowerCase().includes(lowerQuery) &&
+      !selectedNoteTags.find(t => t.slug === tag.slug)
+    );
+
+    if (filtered.length === 0) {
+      noteTagDropdown.classList.add('hidden');
+      return;
+    }
+
+    noteTagSuggestions.innerHTML = filtered.map((tag, index) => {
+      const iconHtml = tag.icon ? `<i data-lucide="${tag.icon}" class="w-4 h-4"></i>` : '';
+      const colorClass = tag.color ? `bg-${tag.color}-50 text-${tag.color}-700` : 'bg-gray-50 text-gray-700';
+      return `
+        <button
+          type="button"
+          data-tag-index="${index}"
+          data-tag-slug="${tag.slug}"
+          class="note-tag-suggestion w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm"
+        >
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 ${colorClass} rounded text-xs">
+            ${iconHtml}
+            <span>${tag.name}</span>
+          </span>
+        </button>
+      `;
+    }).join('');
+
+    noteTagDropdown.classList.remove('hidden');
+    noteActiveSuggestionIndex = -1;
+
+    // Reinitialize lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Add click handlers
+    document.querySelectorAll('.note-tag-suggestion').forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        const slug = btn.dataset.tagSlug;
+        const tag = filtered.find(t => t.slug === slug);
+        if (tag) addNoteTag(tag);
+      });
+    });
+  }
+
+  noteTagSearch?.addEventListener('input', (e) => {
+    renderNoteSuggestions(e.target.value);
+  });
+
+  noteTagSearch?.addEventListener('focus', () => {
+    renderNoteSuggestions(noteTagSearch.value);
+  });
+
+  noteTagSearch?.addEventListener('keydown', (e) => {
+    const suggestions = document.querySelectorAll('.note-tag-suggestion');
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      noteActiveSuggestionIndex = Math.min(noteActiveSuggestionIndex + 1, suggestions.length - 1);
+      updateNoteActiveSuggestion(suggestions);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      noteActiveSuggestionIndex = Math.max(noteActiveSuggestionIndex - 1, -1);
+      updateNoteActiveSuggestion(suggestions);
+    } else if (e.key === 'Enter' && noteActiveSuggestionIndex >= 0) {
+      e.preventDefault();
+      suggestions[noteActiveSuggestionIndex]?.click();
+    } else if (e.key === 'Escape') {
+      noteTagDropdown.classList.add('hidden');
+      noteActiveSuggestionIndex = -1;
+    } else if (e.key === 'Tab') {
+      noteTagDropdown.classList.add('hidden');
+      noteActiveSuggestionIndex = -1;
+    }
+  });
+
+  function updateNoteActiveSuggestion(suggestions) {
+    suggestions.forEach((s, idx) => {
+      if (idx === noteActiveSuggestionIndex) {
+        s.classList.add('bg-gray-100');
+      } else {
+        s.classList.remove('bg-gray-100');
+      }
+    });
+  }
+
+  // Click outside to close dropdown
+  document.addEventListener('click', (e) => {
+    if (!noteTagSearch?.contains(e.target) && !noteTagDropdown?.contains(e.target)) {
+      noteTagDropdown?.classList.add('hidden');
+    }
+  });
+
+  // Make removeNoteTag globally accessible
+  window.removeNoteTag = removeNoteTag;
+
 </script>
 {% endblock %}
 {% block extra_scripts %}

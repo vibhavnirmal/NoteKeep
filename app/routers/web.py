@@ -365,6 +365,7 @@ def add_page(
     bulk_error: str | None = Query(None)
 ):
     recommended_tags: list[dict[str, str | None]] = []
+    available_tags: list[dict[str, str | None]] = []
     session = _get_session()
     try:
         recommended_tag_entities = get_default_tags(session, limit=5)
@@ -378,6 +379,20 @@ def add_page(
             for tag in recommended_tag_entities
             if tag.slug
         ]
+        
+        # Get all available tags for autocomplete
+        all_tags = list_all_tags(session)
+        available_tags = [
+            {
+                "name": tag.name,
+                "slug": tag.slug,
+                "icon": tag.icon,
+                "color": tag.color,
+            }
+            for tag in all_tags
+            if tag.slug
+        ]
+        available_tags.sort(key=lambda item: item["name"].lower())
     finally:
         session.close()
     return templates.TemplateResponse(
@@ -391,6 +406,7 @@ def add_page(
             "bulk_success_message": bulk_success,
             "bulk_error_message": bulk_error,
             "recommended_tags": recommended_tags,
+            "available_tags": available_tags,
         },
     )
 
