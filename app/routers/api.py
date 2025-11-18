@@ -99,12 +99,17 @@ def api_update_link(
     payload: LinkUpdate,
     *,
     session: SessionDep,
+    background_tasks: BackgroundTasks,
 ) -> LinkRead:
     link = get_link(session, link_id)
     if not link:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
     updated = update_link(session, link, payload)
     session.commit()
+
+    if needs_title_refresh(updated):
+        background_tasks.add_task(refresh_link_title_if_placeholder, updated.id)
+
     return LinkRead.model_validate(updated)
 
 

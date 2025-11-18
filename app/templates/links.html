@@ -385,6 +385,7 @@
                                     Tags
                                 </label>
                                 <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
+                                    {% if tags %}
                                     {% for tag in tags %}
                                     <label class="flex items-center justify-between  gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                         <span class="text-sm text-gray-700 flex items-center gap-1.5">
@@ -398,6 +399,12 @@
                                             class="tag-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                                     </label>
                                     {% endfor %}
+                                    {% else %}
+                                    <div class="text-center py-6 text-gray-400">
+                                        <i data-lucide="tag" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                                        <p class="text-sm">No assigned tags</p>
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">Select multiple tags to filter links</p>
                             </div>
@@ -407,6 +414,7 @@
                                     Collections
                                 </label>
                                 <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
+                                    {% if collections %}
                                     {% for collection in collections %}
                                     <label class="flex items-center justify-between  gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                         <span class="text-sm text-gray-700 flex items-center gap-1.5">
@@ -418,6 +426,12 @@
                                             class="collection-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                                     </label>
                                     {% endfor %}
+                                    {% else %}
+                                    <div class="text-center py-6 text-gray-400">
+                                        <i data-lucide="folder" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                                        <p class="text-sm">No assigned collections</p>
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">Select multiple collections to filter links</p>
                             </div>
@@ -443,6 +457,7 @@
                                             <span class="text-sm font-medium text-gray-700">Has Notes</span>
                                         </label>
                                     </div>
+                                    {% if has_any_broken_links %}
                                     <div>
                                         <label class="flex items-center gap-2 cursor-pointer">
                                             <input type="checkbox" name="broken" value="true" {% if show_broken %}checked{% endif %}
@@ -453,6 +468,7 @@
                                             </span>
                                         </label>
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -486,6 +502,7 @@
                             Tags
                         </label>
                         <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
+                            {% if tags %}
                             {% for tag in tags %}
                             <label class="flex items-center justify-between  gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                 <span class="text-sm text-gray-700 flex items-center gap-1.5">
@@ -499,6 +516,12 @@
                                     class="tag-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                             </label>
                             {% endfor %}
+                            {% else %}
+                            <div class="text-center py-6 text-gray-400">
+                                <i data-lucide="tag" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                                <p class="text-sm">No assigned tags</p>
+                            </div>
+                            {% endif %}
                         </div>
                         <p class="text-xs text-gray-500 mt-1">Select multiple tags to filter links</p>
                     </div>
@@ -508,6 +531,7 @@
                             Collections
                         </label>
                         <div class="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 space-y-1 bg-white">
+                            {% if collections %}
                             {% for collection in collections %}
                             <label class="flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer transition-colors">
                                 <span class="text-sm text-gray-700 flex items-center gap-1.5">
@@ -519,6 +543,12 @@
                                     class="collection-checkbox-desktop rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4" />
                             </label>
                             {% endfor %}
+                            {% else %}
+                            <div class="text-center py-6 text-gray-400">
+                                <i data-lucide="folder" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                                <p class="text-sm">No assigned collections</p>
+                            </div>
+                            {% endif %}
                         </div>
                         <p class="text-xs text-gray-500 mt-1">Select multiple collections to filter links</p>
                     </div>
@@ -544,6 +574,7 @@
                                     <span class="text-sm font-medium text-gray-700">Has Notes</span>
                                 </label>
                             </div>
+                            {% if has_any_broken_links %}
                             <div>
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" name="broken" value="true" {% if show_broken %}checked{% endif %}
@@ -554,6 +585,7 @@
                                     </span>
                                 </label>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
 

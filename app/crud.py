@@ -419,8 +419,25 @@ def list_links(
     return results, total
 
 
+def has_broken_links(session: Session) -> bool:
+    """Check if there are any broken links in the database."""
+    count = session.execute(
+        select(func.count(Link.id))
+        .where(Link.link_status.in_(["broken", "unreachable", "error"]))
+    ).scalar_one()
+    return count > 0
+
+
 def list_tags(session: Session) -> list[Tag]:
-    return list(session.execute(select(Tag).order_by(Tag.name)).scalars())
+    """List all tags that have at least one link assigned."""
+    return list(
+        session.execute(
+            select(Tag)
+            .join(link_tag_table, Tag.id == link_tag_table.c.tag_id)
+            .group_by(Tag.id)
+            .order_by(Tag.name)
+        ).scalars()
+    )
 
 
 def get_top_tags(session: Session, limit: int = 5) -> list[Tag]:
@@ -441,7 +458,15 @@ def get_top_tags(session: Session, limit: int = 5) -> list[Tag]:
 
 
 def list_collections(session: Session) -> list[Collection]:
-    return list(session.execute(select(Collection).order_by(Collection.name)).scalars())
+    """List all collections that have at least one link assigned."""
+    return list(
+        session.execute(
+            select(Collection)
+            .join(Link, Collection.id == Link.collection_id)
+            .group_by(Collection.id)
+            .order_by(Collection.name)
+        ).scalars()
+    )
 
 
 def export_all_links(session: Session) -> list[Link]:

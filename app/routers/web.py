@@ -29,6 +29,7 @@ from ..crud import (
     get_default_tags,
     get_link,
     get_tag,
+    has_broken_links,
     list_collections,
     list_collections_with_counts,
     list_links,
@@ -220,6 +221,9 @@ def list_links_view(
 
         # Group links by date
         grouped_links = group_links_by_date(links)
+
+        # Check if there are any broken links
+        any_broken_links = has_broken_links(session)
     finally:
         session.close()
     return templates.TemplateResponse(
@@ -244,6 +248,7 @@ def list_links_view(
             "date_from": date_from,
             "date_to": date_to,
             "show_broken": broken,
+            "has_any_broken_links": any_broken_links,
             "success_message": "Link updated successfully!" if updated else None,
         },
     )
@@ -253,6 +258,7 @@ def list_links_view(
 def update_link_view(
     request: Request,
     link_id: int,
+    background_tasks: BackgroundTasks,
     title: str | None = Form(default=None),
     notes: str | None = Form(default=None),
     tags: str | None = Form(default=None),
@@ -274,8 +280,11 @@ def update_link_view(
             tags=tags_list if tags is not None else None,
             collection=collection if collection else None,
         )
-        update_link(session, link, payload)
+        updated_link = update_link(session, link, payload)
         session.commit()
+
+        if needs_title_refresh(updated_link):
+            background_tasks.add_task(refresh_link_title_if_placeholder, updated_link.id)
     finally:
         session.close()
     referer = request.headers.get("referer") or "/links"
