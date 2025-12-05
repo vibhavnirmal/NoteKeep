@@ -110,6 +110,9 @@ async function submitLink(data) {
 
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
+    const detailMessage = Array.isArray(detail?.detail)
+      ? detail.detail.map((d) => d?.msg || d?.detail || JSON.stringify(d)).join('; ')
+      : detail?.detail || detail?.message;
     
     // Handle duplicate link (409 Conflict)
     if (response.status === 409) {
@@ -119,7 +122,7 @@ async function submitLink(data) {
       throw new Error(`⚠️ Link already exists: "${existingTitle}" (ID: ${existingId})`);
     }
     
-    throw new Error(detail.detail || 'Failed to save link');
+    throw new Error(detailMessage || 'Failed to save link');
   }
 
   return response.json();
@@ -135,6 +138,10 @@ async function handleSubmit(event) {
     tags: [],
     collection: null,
   };
+  // Auto-prepend https:// if the user omits scheme to avoid 422 from backend HttpUrl validation
+  if (link.url && !/^https?:\/\//i.test(link.url)) {
+    link.url = `https://${link.url.trim()}`;
+  }
   const selectedTagsRaw = formData.get('selected_tags');
   if (selectedTagsRaw) {
     link.tags = selectedTagsRaw

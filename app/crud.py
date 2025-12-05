@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
@@ -9,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from .link_preview import fetch_link_metadata
 from .models import Collection, Link, Tag, link_tag_table, Note
 from .schemas import LinkCreate, LinkUpdate, NoteCreate, NoteUpdate
 
@@ -100,6 +102,26 @@ def _normalize_tag(tag: str) -> str:
     if normalized in DEFAULT_TAG_SLUG_SET:
         return normalized
     return normalized
+
+
+def infer_tags_from_url(url: str) -> set[str]:
+    """Infer tag slugs from a URL (e.g., instagram.com -> instagram)."""
+    try:
+        parsed = urlparse(url)
+        host = (parsed.netloc or "").lower()
+        path = (parsed.path or "").lower()
+    except Exception:
+        return set()
+
+    inferred: set[str] = set()
+
+    if "instagram.com" in host:
+        inferred.add("instagram")
+
+    if "youtube.com" in host or "youtu.be" in host or path.startswith("youtu.be"):
+        inferred.add("youtube")
+
+    return inferred
 
 
 def ensure_default_tags(session: Session) -> None:
@@ -231,19 +253,28 @@ def get_link_by_url(session: Session, url: str) -> Link | None:
 
 def create_link(session: Session, payload: LinkCreate) -> Link:
     collection = get_or_create_collection(session, payload.collection)
-    tags = get_or_create_tags(session, payload.tags)
 
-    # Fetch metadata including image if not provided
+    # Auto-apply tags based on known domains
+    inferred_tags = infer_tags_from_url(str(payload.url))
+    combined_tags = list({*(payload.tags or []), *inferred_tags})
+
+    tags = get_or_create_tags(session, combined_tags)
+
+    # Fetch metadata when we need image or caption-backed notes
     image_url = payload.image_url
-    if not image_url:
-        from .link_preview import fetch_link_metadata
-        import asyncio
+    notes = payload.notes
+    metadata = None
+    need_metadata = (not image_url) or (not notes)
+    if need_metadata:
         try:
             metadata = asyncio.run(fetch_link_metadata(str(payload.url), timeout=5))
-            if metadata and metadata.get("image"):
-                image_url = metadata["image"]
+            if metadata:
+                if not image_url and metadata.get("image"):
+                    image_url = metadata["image"]
+                if (not notes) and metadata.get("description"):
+                    notes = metadata["description"]
         except Exception:
-            # If fetching fails, continue without image
+            # If fetching fails, continue without metadata
             pass
 
     # Set initial title to URL if not provided, will be updated by background task
@@ -252,7 +283,7 @@ def create_link(session: Session, payload: LinkCreate) -> Link:
     link = Link(
         url=str(payload.url),
         title=title,
-        notes=payload.notes,
+        notes=notes,
         image_url=image_url,
         collection=collection,
         tags=tags,

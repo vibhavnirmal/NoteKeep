@@ -2,10 +2,26 @@
 
 from __future__ import annotations
 
-from urllib.parse import urljoin
+import re
+from urllib.parse import urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup
+
+
+def _extract_instagram_caption(soup: BeautifulSoup) -> str | None:
+    # Instagram renders post text in caption containers; class list may change over time.
+    caption_nodes = soup.find_all(class_="_ap3a _aaco _aacu _aacx _aad7 _aade")
+    if not caption_nodes:
+        return None
+    parts = [node.get_text(" ", strip=True) for node in caption_nodes if node.get_text(strip=True)]
+    caption = " ".join([p for p in parts if p]).strip()
+    if not caption:
+        return None
+    match = re.search(r'"([^"]+)"', caption)
+    if match:
+        return match.group(1).strip() or None
+    return None
 
 
 async def fetch_link_metadata(url: str, timeout: int = 10) -> dict[str, str | int | bool | None]:
@@ -50,6 +66,17 @@ async def fetch_link_metadata(url: str, timeout: int = 10) -> dict[str, str | in
                     content = meta_desc.get("content")
                     if content:
                         description = str(content).strip()
+
+            # Instagram-specific caption scraping (class may change over time)
+            try:
+                host = urlparse(url).netloc.lower()
+            except Exception:
+                host = ""
+            if "instagram.com" in host:
+                caption = _extract_instagram_caption(soup)
+                if caption:
+                    description = caption
+                    print(f"Extracted Instagram caption: {caption}")
 
             # Try to get image
             image = None
