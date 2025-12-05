@@ -153,22 +153,26 @@ date_to %}
     <!-- Main Content: Links List -->
     <div class="min-w-0 order-2 lg:order-2">
         {% if not links %}
-        <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center">
-            <div
-                class="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary-100 mb-3 sm:mb-4">
-                <i data-lucide="link-2-off" class="w-6 h-6 sm:w-8 sm:h-8 text-primary-600"></i>
+            <!-- check if note -->
+            {% if not notes %}
+            <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center">
+                
+                <div
+                    class="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary-100 mb-3 sm:mb-4">
+                    <i data-lucide="link-2-off" class="w-6 h-6 sm:w-8 sm:h-8 text-primary-600"></i>
+                </div>
+                <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-2">No items found</h3>
+                <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">No links or notes match your current filters. Try
+                    adjusting your search criteria.</p>
+                <div class="mb-4">
+                    <a href="/links"
+                        class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-all shadow-sm">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                        Clear All Filters
+                    </a>
+                </div>
             </div>
-            <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-2">No items found</h3>
-            <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">No links or notes match your current filters. Try
-                adjusting your search criteria.</p>
-            {% if total %}
-            <a href="/links"
-                class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-all shadow-md hover:shadow-lg">
-                <i data-lucide="x-circle" class="w-4 h-4"></i>
-                Clear All Filters
-            </a>
             {% endif %}
-        </div>
         {% else %}
         <!-- Grouped Links by Date -->
         {% for group_name, group_links in grouped_links %}
